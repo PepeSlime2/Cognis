@@ -1,5 +1,7 @@
 import styles from "../TopSideBar/topSideBar.module.css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { api } from "../../api/client";
+import type { ProviderConnection } from "../../api/client";
 
 import iconTrello from "../../assets/trelloicon.png";
 import iconGirHub from "../../assets/github-white-icon.webp";
@@ -8,25 +10,22 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGear } from '@fortawesome/free-solid-svg-icons';
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
-type Connection = { username: string };
 type TopSideBarProps = {
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
+  connections: Record<string, ProviderConnection>;
 };
 
-const TopSideBar = ({ onLogout }: TopSideBarProps) => {
-  const [connections, setConnections] = useState<Record<string, Connection>>({});
-
-  useEffect(() => {
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then((response) => response.ok ? response.json() : null)
-      .then((payload) => setConnections(payload?.connections ?? {}));
-  }, []);
+const TopSideBar = ({ onLogout, connections }: TopSideBarProps) => {
+  const [connectionError, setConnectionError] = useState('');
 
   const connectTrello = async () => {
-    const response = await fetch('/api/auth/trello/authorize-url', { credentials: 'include' });
-    if (!response.ok) throw new Error('Não foi possível iniciar a conexão com o Trello');
-    const { authorize_url: authorizeUrl } = await response.json();
-    window.location.href = authorizeUrl;
+    setConnectionError('');
+    try {
+      const payload = await api.get<{ authorize_url: string }>('/auth/trello/authorize-url');
+      window.location.href = payload.authorize_url;
+    } catch (error) {
+      setConnectionError(error instanceof Error ? error.message : 'Não foi possível iniciar a conexão com o Trello.');
+    }
   };
 
   return (
@@ -44,6 +43,7 @@ const TopSideBar = ({ onLogout }: TopSideBarProps) => {
                 <div className={styles.serviceStatus}>
                   <p>{connections.github ? `Conectado: ${connections.github.username}` : 'Não conectado'}</p>
                 </div>
+                {connectionError && <p className={styles.serviceError} role="alert">{connectionError}</p>}
               </div>
               <button className={styles.trelloContainer} onClick={connectTrello} type="button">
                 <div className={styles.trelloIcon}>
@@ -101,7 +101,7 @@ const TopSideBar = ({ onLogout }: TopSideBarProps) => {
             <div className={styles.settingsConfig}>
               <FontAwesomeIcon icon={faGear} className={styles.settingsIcon} />
             </div>
-            <button onClick={onLogout} type="button">Sair</button>
+            <button onClick={() => void onLogout()} type="button">Sair</button>
           </div>
           <div className={styles.overlay}>
               <div className={styles.configModal}>

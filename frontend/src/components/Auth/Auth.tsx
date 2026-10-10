@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { api } from '../../api/client'
+import type { SessionResponse } from '../../api/client'
 import styles from './auth.module.css'
 
 type AuthProps = {
-  onAuthenticated: () => void
+  onAuthenticated: (session: SessionResponse) => void
 }
 
 const Auth = ({ onAuthenticated }: AuthProps) => {
@@ -19,15 +21,13 @@ const Auth = ({ onAuthenticated }: AuthProps) => {
     setError('')
     setLoading(true)
     try {
-      const response = await fetch(`/api/auth/${mode}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name: mode === 'register' ? name : undefined }),
+      await api.post<{ user_id: string }>(`/auth/${mode}`, {
+        email,
+        password,
+        name: mode === 'register' ? name : undefined,
       })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.detail ?? 'Não foi possível continuar')
-      onAuthenticated()
+      const session = await api.get<SessionResponse>('/auth/me')
+      onAuthenticated(session)
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Não foi possível continuar')
     } finally {

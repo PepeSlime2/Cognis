@@ -17,6 +17,7 @@ As decisões abaixo transcrevem as escolhas da [especificação](./SPEC.md). Mud
 | D-11 | Persistir apenas metadados; não guardar corpos de commits, PRs ou comentários nem e-mails em claro. | Privacidade/LGPD e minimização de dados. | Persistir texto completo. |
 | D-12 | Rótulos dos nós em inglês e tipos de relação em português. | Consistência do modelo do grafo. | — |
 | D-13 | Fixar `pytest==9.1.1` e `httpx2==2.13.1` para os testes de API. | O Starlette instalado exige `httpx2` para `TestClient`; verificado no ambiente Python do backend. | `httpx` isolado, que não satisfaz o requisito observado. |
+| D-14 | Frontend usa `react-router-dom==7.18.4` e `@tanstack/react-query==5.104.1`; chamadas HTTP passam por `src/api/client.ts`. | Rotas explícitas, cache de sessão e uma política comum de cookies/erros. | `fetch` duplicado em componentes. |
 
 ## Histórico
 

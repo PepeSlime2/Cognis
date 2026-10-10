@@ -1,55 +1,79 @@
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import './App.css'
-import Home from "./pages/Home/Home"
-import { useEffect, useState } from 'react'
+import { ApiError, api, sessionQueryKey } from './api/client'
+import type { SessionResponse } from './api/client'
 import Auth from './components/Auth/Auth'
+import Home from './pages/Home/Home'
+import TrelloCallback from './pages/TrelloCallback/TrelloCallback'
 
-const API_URL = '/api'
+function SessionPage() {
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const [logoutError, setLogoutError] = useState('')
+  const sessionQuery = useQuery({
+    queryKey: sessionQueryKey,
+    queryFn: () => api.get<SessionResponse>('/auth/me'),
+  })
 
-function App() {
-  const [trelloStatus, setTrelloStatus] = useState<'loading' | 'success' | 'error'>('loading')
-    const [authenticated, setAuthenticated] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    if (window.location.pathname !== '/trello-callback') return
-
-    const params = new URLSearchParams(window.location.search)
-    const code = params.get('code')
-    const state = params.get('state')
-    if (!code || !state) {
-      setTrelloStatus('error')
-      return
-    }
-
-    fetch(`${API_URL}/auth/trello/exchange?${new URLSearchParams({ code, state })}`, {
-      credentials: 'include',
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error('Trello OAuth falhou')
-        return response.json()
-      })
-      .then(() => setTrelloStatus('success'))
-      .catch(() => setTrelloStatus('error'))
-  }, [])
-
-    useEffect(() => {
-      if (window.location.pathname === '/trello-callback') return
-      fetch('/api/auth/me', { credentials: 'include' })
-        .then((response) => setAuthenticated(response.ok))
-        .catch(() => setAuthenticated(false))
-    }, [])
-
-  if (window.location.pathname === '/trello-callback') {
-    return <main><h1>{trelloStatus === 'success' ? 'Trello conectado' : trelloStatus === 'error' ? 'Falha ao conectar o Trello' : 'Conectando ao Trello...'}</h1></main>
+  if (sessionQuery.isPending) {
+    return <main><h1>Carregando...</h1></main>
   }
 
-    if (authenticated === null) return <main><h1>Carregando...</h1></main>
-    if (!authenticated) return <Auth onAuthenticated={() => setAuthenticated(true)} />
+  if (sessionQuery.isError && !(sessionQuery.error instanceof ApiError && sessionQuery.error.status === 401)) {
+    return (
+      <main>
+        <h1>Não foi possível carregar sua sessão</h1>
+        <p>{sessionQuery.error.message}</p>
+        <button onClick={() => void sessionQuery.refetch()} type="button">Tentar novamente</button>
+      </main>
+    )
+  }
+
+  if (sessionQuery.isError) {
+    return (
+      <Auth
+        onAuthenticated={(session) => {
+          queryClient.setQueryData(sessionQueryKey, session)
+          setLogoutError('')
+          navigate('/')
+        }}
+      />
+    )
+  }
+
+  const session = sessionQuery.data
+  if (!session) {
+    return <main><h1>Não foi possível carregar sua sessão</h1></main>
+  }
+
+  const logout = async () => {
+    setLogoutError('')
+    try {
+      await api.post('/auth/logout')
+      await queryClient.invalidateQueries({ queryKey: sessionQueryKey })
+    } catch (error) {
+      setLogoutError(error instanceof Error ? error.message : 'Não foi possível sair.')
+    }
+  }
 
   return (
-      <Home onLogout={() => {
-        fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-          .finally(() => setAuthenticated(false))
-      }} />
+    <>
+      {logoutError && <p role="alert">{logoutError}</p>}
+      <Home onLogout={logout} connections={session.connections} />
+    </>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/trello-callback" element={<TrelloCallback />} />
+      <Route path="/login" element={<SessionPage />} />
+      <Route path="/" element={<SessionPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 
