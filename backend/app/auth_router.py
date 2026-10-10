@@ -8,7 +8,6 @@ GitHub:  fluxo OAuth2 clássico, tudo server-side.
 Trello:  o Trello não faz esse "code exchange" — ele devolve o token
 direto pro navegador, no fragmento da URL (#token=...). Por isso:
   GET  /auth/trello/authorize-url  -> devolve a URL que o FRONTEND deve abrir
-  POST /auth/trello/token          -> o FRONTEND manda aqui o token que capturou
 
 Sessão: um JWT em cookie httpOnly (não fica acessível via JS, então
 não some por causa de disparo de XSS bobo).
@@ -117,10 +116,13 @@ def github_login(response: Response):
         key=auth_config.oauth_state_cookie_name, value=state, httponly=True,
         secure=auth_config.cookie_secure, samesite="lax", max_age=600,
     )
-    url = (
-        f"{github_oauth.authorize_url}?client_id={github_oauth.client_id}"
-        f"&redirect_uri={github_oauth.redirect_uri}&scope={github_oauth.scope}&state={state}"
-    )
+    params = {
+        'client_id': github_oauth.client_id,
+        'redirect_uri': github_oauth.redirect_uri,
+        'scope': github_oauth.scope,
+        'state': state,
+    }
+    url = f"{github_oauth.authorize_url}?{urlencode(params)}"
     return {"authorize_url": url}
 
 
@@ -147,7 +149,7 @@ def github_callback(code: str, state: str, response: Response,
     payload = token_resp.json()
     access_token = payload.get("access_token")
     if not access_token:
-        raise HTTPException(400, f"GitHub não retornou token: {payload}")
+        raise HTTPException(400, "GitHub não retornou um token de acesso válido")
 
     username = get_github_username(access_token)
 
@@ -195,10 +197,6 @@ def trello_authorize_url(response: Response):
     return {"authorize_url": f"{trello_oauth.authorize_url}?{urlencode(params)}"}
 
 
-class TrelloTokenIn(BaseModel):
-    token: str
-
-
 @router.get("/trello/exchange")
 def trello_exchange(code: str, state: str, response: Response,
                     trello_oauth_state: str | None = Cookie(default=None),
@@ -225,7 +223,7 @@ def trello_exchange(code: str, state: str, response: Response,
         timeout=15,
     )
     if not token_resp.ok:
-        raise HTTPException(token_resp.status_code, f"Trello recusou o código: {token_resp.text}")
+        raise HTTPException(token_resp.status_code, "Trello recusou o código de autorização")
     access_token = token_resp.json().get("access_token")
     if not access_token:
         raise HTTPException(400, "Trello não retornou access_token")
@@ -242,24 +240,6 @@ def trello_exchange(code: str, state: str, response: Response,
     _set_session_cookie(response, user_id)
     response.delete_cookie("trello_oauth_state")
     response.delete_cookie("trello_pkce_verifier")
-    return {"connected": "trello", "username": member["username"]}
-
-
-@router.post("/trello/token")
-def trello_token(body: TrelloTokenIn, response: Response,
-                  cognis_session: str | None = Cookie(default=None),
-                  driver: Driver = Depends(get_neo4j_driver)):
-    member = get_trello_member(body.token)  # valida o token contra a API do Trello
-
-    existing_user_id = decode_session_jwt(cognis_session) if cognis_session else None
-    with UserStore(driver) as store:
-        user_id = store.get_or_create_user(existing_user_id)
-        store.link_provider_account(
-            user_id=user_id, provider="trello", username=member["username"],
-            raw_token=body.token, name=member.get("fullName"), avatar_url=member.get("avatarUrl"),
-        )
-
-    _set_session_cookie(response, user_id)
     return {"connected": "trello", "username": member["username"]}
 
 

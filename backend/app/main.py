@@ -7,12 +7,15 @@ Rodar:
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from neo4j import Driver
 from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import BaseModel
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from .auth_router import get_current_user_id, router as auth_router
 from .config import app_config
@@ -44,6 +47,33 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+
+
+@app.middleware("http")
+async def validate_request_origin(request: Request, call_next):
+    if request.method.upper() != "GET":
+        origin = request.headers.get("origin") or request.headers.get("referer")
+        if not origin or not _matches_frontend_origin(origin):
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Origem da requisição não autorizada"},
+            )
+    return await call_next(request)
+
+
+def _matches_frontend_origin(value: str) -> bool:
+    try:
+        request_url = urlsplit(value)
+        frontend_url = urlsplit(app_config.frontend_url)
+        return (
+            request_url.scheme.lower(),
+            request_url.netloc.lower(),
+        ) == (
+            frontend_url.scheme.lower(),
+            frontend_url.netloc.lower(),
+        )
+    except ValueError:
+        return False
 
 
 @app.get("/health")

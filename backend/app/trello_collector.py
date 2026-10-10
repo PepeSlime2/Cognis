@@ -1,7 +1,7 @@
 """
 Coletor de dados do Trello — versão multiusuário.
 
-Recebe o `token` do usuário logado (obtido no fluxo /auth/trello/token)
+Recebe o `token` do usuário logado (obtido no fluxo OAuth)
 em vez de um TRELLO_TOKEN fixo no .env. A `key` do app continua sendo
 a mesma pra todo mundo (é pública, identifica o COGNIS como aplicação).
 
@@ -30,7 +30,7 @@ def _get(token: str, path: str, **params) -> list | dict:
 
 
 def get_authenticated_member(token: str) -> dict:
-    """Valida o token e retorna {username, fullName, avatarUrl} — usado no /auth/trello/token."""
+    """Valida o token e retorna os dados do membro autenticado."""
     return _get(token, "/members/me", fields="username,fullName,avatarUrl")
 
 
