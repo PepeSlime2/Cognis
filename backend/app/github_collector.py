@@ -17,7 +17,7 @@ from typing import Iterator
 
 import requests
 
-from neo4j_writer import Neo4jWriter
+from .neo4j_writer import Neo4jWriter
 
 GITHUB_API = "https://api.github.com"
 CLOSES_RE = re.compile(r"\b(closes|close|closed|fixes|fix|fixed|resolves|resolve|resolved)\s+#(\d+)", re.I)

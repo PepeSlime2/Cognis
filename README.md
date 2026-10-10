@@ -37,7 +37,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 if (-not (Test-Path .env)) { Copy-Item env.example .env }
-uvicorn main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
 ```
 
 Configure as credenciais OAuth e os segredos locais em `backend/.env`. A API fica em `http://localhost:8000`; documentação interativa em `http://localhost:8000/docs`.

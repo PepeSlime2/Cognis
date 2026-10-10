@@ -14,8 +14,8 @@ from __future__ import annotations
 
 import requests
 
-from config import trello_oauth
-from neo4j_writer import Neo4jWriter
+from .config import trello_oauth
+from .neo4j_writer import Neo4jWriter
 
 
 def _get(token: str, path: str, **params) -> list | dict:

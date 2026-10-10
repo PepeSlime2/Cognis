@@ -28,11 +28,11 @@ import requests
 from fastapi import APIRouter, Cookie, HTTPException, Response
 from pydantic import BaseModel
 
-from config import app_config, auth_config, github_oauth, trello_oauth
-from github_collector import get_authenticated_username as get_github_username
-from security import create_session_jwt, decode_session_jwt, hash_password, verify_password
-from trello_collector import get_authenticated_member as get_trello_member
-from user_store import UserStore
+from .config import app_config, auth_config, github_oauth, trello_oauth
+from .github_collector import get_authenticated_username as get_github_username
+from .security import create_session_jwt, decode_session_jwt, hash_password, verify_password
+from .trello_collector import get_authenticated_member as get_trello_member
+from .user_store import UserStore
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

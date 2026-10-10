@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from neo4j import GraphDatabase
 
-from config import neo4j_config
+from .config import neo4j_config
 
 
 class Neo4jWriter:

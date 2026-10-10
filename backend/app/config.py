@@ -1,7 +1,7 @@
 """
 Configuração central do backend do COGNIS.
 
-Lida do ambiente (.env). Veja .env.example.
+Lida do ambiente (.env). Veja env.example.
 """
 import os
 from dataclasses import dataclass

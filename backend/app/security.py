@@ -21,7 +21,7 @@ import secrets
 import jwt
 from cryptography.fernet import Fernet
 
-from config import auth_config
+from .config import auth_config
 
 _fernet = Fernet(auth_config.fernet_key.encode()) if auth_config.fernet_key else None
 

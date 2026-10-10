@@ -20,8 +20,8 @@ import uuid
 
 from neo4j import GraphDatabase
 
-from config import neo4j_config
-from security import decrypt_token, encrypt_token
+from .config import neo4j_config
+from .security import decrypt_token, encrypt_token
 
 
 class UserStore:

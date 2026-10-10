@@ -7,10 +7,10 @@ Uso:
 Depois, quando o backend FastAPI existir, o corpo da função `run_sync()`
 é exatamente o que vai dentro do endpoint POST /sync.
 """
-from config import github_config, trello_config
-from github_collector import collect_repo
-from neo4j_writer import Neo4jWriter
-from trello_collector import collect_board
+from .config import github_config, trello_config
+from .github_collector import collect_repo
+from .neo4j_writer import Neo4jWriter
+from .trello_collector import collect_board
 
 
 def run_sync() -> dict:

@@ -2,7 +2,7 @@
 App principal do backend COGNIS.
 
 Rodar:
-    uvicorn main:app --reload --port 8000
+    uvicorn app.main:app --reload --port 8000
 """
 from __future__ import annotations
 
@@ -10,12 +10,12 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from auth_router import get_current_user_id, router as auth_router
-from config import app_config
-from github_collector import collect_repo, fetch_user_repos
-from neo4j_writer import Neo4jWriter
-from trello_collector import collect_board, fetch_user_boards
-from user_store import UserStore
+from .auth_router import get_current_user_id, router as auth_router
+from .config import app_config
+from .github_collector import collect_repo, fetch_user_repos
+from .neo4j_writer import Neo4jWriter
+from .trello_collector import collect_board, fetch_user_boards
+from .user_store import UserStore
 
 app = FastAPI(title="COGNIS API")
 

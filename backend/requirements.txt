@@ -6,3 +6,5 @@ python-dotenv>=1.0
 pyjwt>=2.9
 cryptography>=43.0
 pydantic>=2.9
+pytest==9.1.1
+httpx2==2.13.1
