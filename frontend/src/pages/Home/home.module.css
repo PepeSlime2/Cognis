@@ -1,0 +1,18 @@
+
+.homeContainer{
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+    padding: 10px 0;
+    gap: 20px;
+}
+
+.mainContentContainer{
+    display: flex;
+    flex: 6;
+}
+
+.topSideBarContainer{
+    display: flex;
+    flex: 1;
+}
