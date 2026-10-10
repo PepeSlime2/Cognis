@@ -41,6 +41,7 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 Configure as credenciais OAuth e os segredos locais em `backend/.env`. A API fica em `http://localhost:8000`; documentação interativa em `http://localhost:8000/docs`.
+O estado da conexão com o Neo4j pode ser consultado em `http://localhost:8000/health`.
 
 ## Frontend
 

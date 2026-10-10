@@ -25,10 +25,12 @@ import secrets
 from urllib.parse import urlencode
 
 import requests
-from fastapi import APIRouter, Cookie, HTTPException, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
+from neo4j import Driver
 from pydantic import BaseModel
 
 from .config import app_config, auth_config, github_oauth, trello_oauth
+from .database import get_neo4j_driver
 from .github_collector import get_authenticated_username as get_github_username
 from .security import create_session_jwt, decode_session_jwt, hash_password, verify_password
 from .trello_collector import get_authenticated_member as get_trello_member
@@ -49,11 +51,15 @@ class LoginIn(BaseModel):
 
 
 @router.post("/register")
-def register(body: RegisterIn, response: Response):
+def register(
+    body: RegisterIn,
+    response: Response,
+    driver: Driver = Depends(get_neo4j_driver),
+):
     email = body.email.strip().lower()
     if "@" not in email or len(body.password) < 8:
         raise HTTPException(400, "Informe um email válido e uma senha com pelo menos 8 caracteres")
-    with UserStore() as store:
+    with UserStore(driver) as store:
         store.ensure_constraints()
         if store.get_local_user(email):
             raise HTTPException(409, "Este email já está cadastrado")
@@ -63,9 +69,13 @@ def register(body: RegisterIn, response: Response):
 
 
 @router.post("/login")
-def login(body: LoginIn, response: Response):
+def login(
+    body: LoginIn,
+    response: Response,
+    driver: Driver = Depends(get_neo4j_driver),
+):
     email = body.email.strip().lower()
-    with UserStore() as store:
+    with UserStore(driver) as store:
         user = store.get_local_user(email)
     if not user or not verify_password(body.password, user["password_hash"]):
         raise HTTPException(401, "Email ou senha inválidos")
@@ -117,7 +127,8 @@ def github_login(response: Response):
 @router.get("/github/callback")
 def github_callback(code: str, state: str, response: Response,
                      cognis_oauth_state: str | None = Cookie(default=None),
-                     cognis_session: str | None = Cookie(default=None)):
+                     cognis_session: str | None = Cookie(default=None),
+                     driver: Driver = Depends(get_neo4j_driver)):
     if not cognis_oauth_state or state != cognis_oauth_state:
         raise HTTPException(400, "state inválido (possível CSRF) — tente conectar de novo")
 
@@ -141,7 +152,7 @@ def github_callback(code: str, state: str, response: Response,
     username = get_github_username(access_token)
 
     existing_user_id = decode_session_jwt(cognis_session) if cognis_session else None
-    with UserStore() as store:
+    with UserStore(driver) as store:
         user_id = store.get_or_create_user(existing_user_id)
         store.link_provider_account(user_id=user_id, provider="github", username=username, raw_token=access_token)
 
@@ -192,7 +203,8 @@ class TrelloTokenIn(BaseModel):
 def trello_exchange(code: str, state: str, response: Response,
                     trello_oauth_state: str | None = Cookie(default=None),
                     trello_pkce_verifier: str | None = Cookie(default=None),
-                    cognis_session: str | None = Cookie(default=None)):
+                    cognis_session: str | None = Cookie(default=None),
+                    driver: Driver = Depends(get_neo4j_driver)):
     if not trello_oauth.client_id or not trello_oauth.client_secret:
         raise HTTPException(500, "TRELLO_CLIENT_ID e TRELLO_CLIENT_SECRET devem estar configurados no .env")
     if not trello_oauth_state or state != trello_oauth_state:
@@ -220,7 +232,7 @@ def trello_exchange(code: str, state: str, response: Response,
 
     member = get_trello_member(access_token)
     existing_user_id = decode_session_jwt(cognis_session) if cognis_session else None
-    with UserStore() as store:
+    with UserStore(driver) as store:
         user_id = store.get_or_create_user(existing_user_id)
         store.link_provider_account(
             user_id=user_id, provider="trello", username=member["username"],
@@ -235,11 +247,12 @@ def trello_exchange(code: str, state: str, response: Response,
 
 @router.post("/trello/token")
 def trello_token(body: TrelloTokenIn, response: Response,
-                  cognis_session: str | None = Cookie(default=None)):
+                  cognis_session: str | None = Cookie(default=None),
+                  driver: Driver = Depends(get_neo4j_driver)):
     member = get_trello_member(body.token)  # valida o token contra a API do Trello
 
     existing_user_id = decode_session_jwt(cognis_session) if cognis_session else None
-    with UserStore() as store:
+    with UserStore(driver) as store:
         user_id = store.get_or_create_user(existing_user_id)
         store.link_provider_account(
             user_id=user_id, provider="trello", username=member["username"],

@@ -18,20 +18,20 @@ from __future__ import annotations
 import datetime as dt
 import uuid
 
-from neo4j import GraphDatabase
+from neo4j import Driver
 
-from .config import neo4j_config
+from .database import create_neo4j_driver
 from .security import decrypt_token, encrypt_token
 
 
 class UserStore:
-    def __init__(self) -> None:
-        self._driver = GraphDatabase.driver(
-            neo4j_config.uri, auth=(neo4j_config.user, neo4j_config.password)
-        )
+    def __init__(self, driver: Driver | None = None) -> None:
+        self._driver = driver if driver is not None else create_neo4j_driver()
+        self._owns_driver = driver is None
 
     def close(self) -> None:
-        self._driver.close()
+        if self._owns_driver:
+            self._driver.close()
 
     def __enter__(self) -> "UserStore":
         return self
