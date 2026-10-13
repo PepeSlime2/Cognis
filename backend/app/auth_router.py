@@ -217,6 +217,17 @@ def _pkce_challenge(verifier: str) -> str:
     return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
 
 
+def _clean_workspace_id(raw: str) -> str:
+    cleaned = raw.strip()
+    if not cleaned:
+        return ""
+    if cleaned.startswith("ari:cloud:trello::workspace/"):
+        return cleaned.split("ari:cloud:trello::workspace/", 1)[1].strip()
+    if "/w/" in cleaned:
+        return cleaned.split("/w/", 1)[1].split("/")[0].strip()
+    return cleaned.strip("/")
+
+
 @router.get("/trello/authorize-url")
 def trello_authorize_url(
     response: Response,
@@ -245,17 +256,14 @@ def trello_authorize_url(
         "scope": trello_oauth.scope,
         "redirect_uri": return_url,
         "response_type": "code",
+        "state": state,
         "prompt": "consent",
         "code_challenge_method": "S256",
         "code_challenge": _pkce_challenge(verifier),
     }
-    workspace_id = getattr(trello_oauth, "workspace_id", "") or ""
+    workspace_id = _clean_workspace_id(getattr(trello_oauth, "workspace_id", "") or "")
     if workspace_id:
-        params["resource"] = (
-            workspace_id
-            if workspace_id.startswith("ari:")
-            else f"ari:cloud:trello::workspace/{workspace_id}"
-        )
+        params["resource"] = f"ari:cloud:trello::workspace/{workspace_id}"
     return {"authorize_url": f"{trello_oauth.authorize_url}?{urlencode(params)}"}
 
 
@@ -288,13 +296,9 @@ def trello_exchange(code: str, state: str, response: Response,
         "code": code,
         "code_verifier": trello_pkce_verifier,
     }
-    workspace_id = getattr(trello_oauth, "workspace_id", "") or ""
+    workspace_id = _clean_workspace_id(getattr(trello_oauth, "workspace_id", "") or "")
     if workspace_id:
-        token_payload["resource"] = (
-            workspace_id
-            if workspace_id.startswith("ari:")
-            else f"ari:cloud:trello::workspace/{workspace_id}"
-        )
+        token_payload["resource"] = f"ari:cloud:trello::workspace/{workspace_id}"
 
     token_resp = requests.post(
         trello_oauth.token_url,

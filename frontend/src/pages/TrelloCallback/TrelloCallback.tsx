@@ -46,8 +46,15 @@ const linkStyle: React.CSSProperties = {
 
 function TrelloCallback() {
   const [searchParams] = useSearchParams()
-  const code = searchParams.get('code')
-  const state = searchParams.get('state')
+  const hashParams = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.hash.replace(/^#\/?/, ''))
+    : new URLSearchParams()
+
+  const code = searchParams.get('code') || hashParams.get('code')
+  const state = searchParams.get('state') || hashParams.get('state')
+  const oauthError = searchParams.get('error') || hashParams.get('error')
+  const oauthErrorDescription = searchParams.get('error_description') || hashParams.get('error_description')
+
   const exchangeQuery = useQuery({
     queryKey: ['auth', 'trello-exchange', code, state],
     queryFn: () => {
@@ -63,7 +70,25 @@ function TrelloCallback() {
     retry: false,
   })
 
+  if (oauthError) {
+    return (
+      <main style={containerStyle}>
+        <div style={cardStyle}>
+          <h2 style={{ margin: 0, fontSize: '20px' }}>Erro na autorização do Trello</h2>
+          <p style={{ margin: 0, color: '#fca5a5', fontSize: '14px' }}>
+            {oauthErrorDescription || oauthError}
+          </p>
+          <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+            Código: {oauthError}
+          </span>
+          <Link to="/" style={linkStyle}>Voltar ao início</Link>
+        </div>
+      </main>
+    )
+  }
+
   if (!code || !state) {
+    const rawParams = searchParams.toString()
     return (
       <main style={containerStyle}>
         <div style={cardStyle}>
@@ -71,6 +96,11 @@ function TrelloCallback() {
           <p style={{ margin: 0, color: '#fca5a5', fontSize: '14px' }}>
             A autorização não retornou os dados necessários. Inicie a conexão novamente.
           </p>
+          {rawParams ? (
+            <p style={{ margin: 0, color: '#94a3b8', fontSize: '12px', wordBreak: 'break-all' }}>
+              Parâmetros recebidos: {rawParams}
+            </p>
+          ) : null}
           <Link to="/" style={linkStyle}>Voltar ao início</Link>
         </div>
       </main>

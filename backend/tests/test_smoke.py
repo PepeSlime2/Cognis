@@ -408,7 +408,9 @@ def test_provider_connections_require_an_authenticated_session():
 def test_localhost_origin_is_allowed_only_in_development(monkeypatch):
     driver = FakeDriver()
     monkeypatch.setattr(main, "create_neo4j_driver", lambda: driver)
-    development_config = replace(config.app_config, environment="dev")
+    development_config = replace(
+        config.app_config, environment="dev", frontend_url="https://cognis.app"
+    )
     monkeypatch.setattr(
         main,
         "app_config",
@@ -424,7 +426,9 @@ def test_localhost_origin_is_allowed_only_in_development(monkeypatch):
     assert dev_response.status_code == 200
     assert driver.close_count == 1
 
-    production_config = replace(config.app_config, environment="production")
+    production_config = replace(
+        config.app_config, environment="production", frontend_url="https://cognis.app"
+    )
     monkeypatch.setattr(main, "app_config", production_config)
     assert "http://localhost:5173" not in production_config.allowed_frontend_origins
     assert not main._matches_frontend_origin("http://localhost:5173")
@@ -453,6 +457,34 @@ def test_github_login_encodes_authorization_parameters(monkeypatch):
         "scope": ["read:user repo"],
         "state": [client.cookies.get("cognis_oauth_state")],
     }
+
+
+def test_trello_authorize_url_encodes_state_and_pkce(monkeypatch):
+    monkeypatch.setattr(
+        auth_router,
+        "trello_oauth",
+        SimpleNamespace(
+            authorize_url="https://auth.atlassian.com/authorize",
+            client_id="trello-client-id",
+            scope="read:member:trello read:board:trello offline_access",
+            workspace_id="areadetrabalho74169937",
+        ),
+    )
+
+    with TestClient(main.app, follow_redirects=False) as client:
+        register_user(client)
+        response = client.get("/auth/trello/authorize-url")
+
+    assert response.status_code == 200
+    authorize_url = urlsplit(response.json()["authorize_url"])
+    query = parse_qs(authorize_url.query)
+    assert query["client_id"] == ["trello-client-id"]
+    assert query["state"] == [client.cookies.get("trello_oauth_state")]
+    assert query["response_type"] == ["code"]
+    assert query["code_challenge_method"] == ["S256"]
+    assert "code_challenge" in query
+    assert query["resource"] == ["ari:cloud:trello::workspace/areadetrabalho74169937"]
+    assert client.cookies.get("trello_pkce_verifier") is not None
 
 
 def test_github_callback_saves_token_for_authenticated_user_without_exposing_it(

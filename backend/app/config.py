@@ -77,3 +77,4 @@ github_oauth = GitHubOAuthConfig()
 trello_oauth = TrelloOAuthConfig()
 auth_config = AuthConfig()
 app_config = AppConfig()
+
