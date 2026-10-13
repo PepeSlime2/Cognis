@@ -1,0 +1,118 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 16px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: var(--glass-blur);
+  z-index: 30;
+  box-sizing: border-box;
+  overflow-x: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.toolbar::-webkit-scrollbar {
+  height: 3px;
+}
+
+.controlGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.controlLabel {
+  color: var(--text-muted);
+  font-size: 11px;
+  user-select: none;
+}
+
+.controlSelect {
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: rgba(6, 4, 25, 0.85);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.controlSelect:focus {
+  border-color: var(--accent-cyan);
+  outline: none;
+}
+
+.rangeInput {
+  width: 72px;
+  accent-color: var(--accent-purple);
+  cursor: pointer;
+}
+
+.rangeOutput {
+  color: var(--accent-cyan);
+  font-weight: 700;
+  font-size: 11px;
+  min-width: 18px;
+}
+
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 11px;
+  user-select: none;
+}
+
+.checkboxInput {
+  accent-color: var(--accent-purple);
+  cursor: pointer;
+}
+
+.toolBtn {
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 5px 9px;
+  background: rgba(18, 14, 58, 0.65);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toolBtn:hover:not(:disabled) {
+  background: rgba(30, 22, 90, 0.85);
+  border-color: var(--accent-purple-light);
+  color: #ffffff;
+}
+
+.toolBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.toolBtnActive {
+  background: var(--accent-gradient) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+}
+
+.separator {
+  width: 1px;
+  height: 20px;
+  background: rgba(139, 92, 246, 0.15);
+  margin: 0 2px;
+  flex-shrink: 0;
+}

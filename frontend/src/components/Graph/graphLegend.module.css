@@ -1,0 +1,79 @@
+.legendContainer {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: rgba(8, 6, 32, 0.88);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  color: var(--text-secondary);
+  font-size: 11px;
+  z-index: 10;
+  max-width: 320px;
+  transition: all 0.2s ease;
+}
+
+.legendHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.12);
+  cursor: pointer;
+  user-select: none;
+}
+
+.legendTitle {
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.toggleBtn {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.toggleBtn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.legendBody {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 6px 10px 8px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.personColor { background: var(--node-person, #8FBF78); color: var(--node-person, #8FBF78); }
+.taskColor { background: var(--node-task, #65B5D9); color: var(--node-task, #65B5D9); }
+.prColor { background: var(--node-pr, #C17BC7); color: var(--node-pr, #C17BC7); }
+.repoColor { background: var(--node-repo, #4A8B71); color: var(--node-repo, #4A8B71); }
+.moduleColor { background: var(--node-module, #8FBF78); color: var(--node-module, #8FBF78); }
+.columnColor { background: var(--node-column, #D5A04A); color: var(--node-column, #D5A04A); }

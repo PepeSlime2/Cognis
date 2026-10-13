@@ -249,6 +249,13 @@ def trello_authorize_url(
         "code_challenge_method": "S256",
         "code_challenge": _pkce_challenge(verifier),
     }
+    workspace_id = getattr(trello_oauth, "workspace_id", "") or ""
+    if workspace_id:
+        params["resource"] = (
+            workspace_id
+            if workspace_id.startswith("ari:")
+            else f"ari:cloud:trello::workspace/{workspace_id}"
+        )
     return {"authorize_url": f"{trello_oauth.authorize_url}?{urlencode(params)}"}
 
 
@@ -273,16 +280,25 @@ def trello_exchange(code: str, state: str, response: Response,
     if not trello_pkce_verifier:
         raise HTTPException(400, "PKCE ausente — inicie a conexão novamente")
 
+    token_payload = {
+        "client_id": trello_oauth.client_id,
+        "client_secret": trello_oauth.client_secret,
+        "grant_type": "authorization_code",
+        "redirect_uri": f"{app_config.frontend_url}/trello-callback",
+        "code": code,
+        "code_verifier": trello_pkce_verifier,
+    }
+    workspace_id = getattr(trello_oauth, "workspace_id", "") or ""
+    if workspace_id:
+        token_payload["resource"] = (
+            workspace_id
+            if workspace_id.startswith("ari:")
+            else f"ari:cloud:trello::workspace/{workspace_id}"
+        )
+
     token_resp = requests.post(
         trello_oauth.token_url,
-        json={
-            "client_id": trello_oauth.client_id,
-            "client_secret": trello_oauth.client_secret,
-            "grant_type": "authorization_code",
-            "redirect_uri": f"{app_config.frontend_url}/trello-callback",
-            "code": code,
-            "code_verifier": trello_pkce_verifier,
-        },
+        json=token_payload,
         timeout=15,
     )
     if not token_resp.ok:

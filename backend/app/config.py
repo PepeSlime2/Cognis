@@ -36,6 +36,7 @@ class TrelloOAuthConfig:
     app_name: str = os.getenv("TRELLO_APP_NAME", "COGNIS")
     client_id: str = os.getenv("TRELLO_CLIENT_ID", "")
     client_secret: str = os.getenv("TRELLO_CLIENT_SECRET", "")
+    workspace_id: str = os.getenv("TRELLO_WORKSPACE_ID", "")
     scope: str = os.getenv(
         "TRELLO_OAUTH_SCOPE",
         "read:member:trello read:board:trello offline_access",

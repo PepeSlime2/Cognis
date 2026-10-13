@@ -1,115 +1,108 @@
-body{
-  background-color: #02001b;
+:root {
+  /* Paleta principal — Dark Academia Digital */
+  --bg-base: #182923; /* Verde-floresta profundo (fundo principal) */
+  --bg-surface: #26382D; /* Verde-musgo (painéis e áreas secundárias) */
+  --bg-surface-elevated: #302720; /* Marrom café (cards e superfícies elevadas) */
+  --bg-card: rgba(48, 39, 32, 0.72);
+  --bg-card-hover: rgba(58, 48, 38, 0.9);
+  --bg-glass: rgba(38, 56, 45, 0.75);
+
+  /* Acentos Bronze & Dourado */
+  --border-subtle: rgba(121, 86, 56, 0.38); /* Bronze envelhecido suave */
+  --border-medium: #795638; /* Bronze envelhecido */
+  --border-glow: rgba(197, 161, 93, 0.45);
+  --accent-gold: #C5A15D; /* Dourado antigo (destaques e ícones) */
+  --accent-gold-light: #E0C78E;
+  --accent-bronze: #795638;
+  --accent-gradient: linear-gradient(135deg, #C5A15D 0%, #795638 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #E0C78E 0%, #8F6643 100%);
+  --gradient-card: linear-gradient(135deg, rgba(48, 39, 32, 0.8) 0%, rgba(38, 56, 45, 0.8) 100%);
+
+  /* Textos Dark Academia */
+  --text-primary: #E9E0CE; /* Marfim quente (textos principais) */
+  --text-secondary: #BDB4A2; /* Bege acinzentado (textos secundários) */
+  --text-muted: #9A907E;
+  --text-dim: #736B5D;
+
+  /* Cores para os nós do grafo */
+  --node-person: #8FBF78; /* Desenvolvedor */
+  --node-task: #65B5D9; /* Tarefa */
+  --node-pr: #C17BC7; /* Pull Request */
+  --node-issue: #E5A13E; /* Issue */
+  --node-review: #AD8BCF; /* Review */
+  --node-repo: #4A8B71; /* Repositório */
+  --node-module: #8FBF78; /* Módulo */
+  --node-column: #D5A04A; /* Coluna */
+
+  /* Cores de relações (Arestas) */
+  --edge-collab: #9BBF8B; /* Colaboração */
+  --edge-review: #B99BCB; /* Revisão */
+  --edge-dep: #A69D8D; /* Dependência */
+  --edge-rel: #D2A04C; /* Relacionado */
+
+  /* Cores para estados e indicadores */
+  --status-success: #8FBF78; /* Verde natural */
+  --status-success-bg: rgba(143, 191, 120, 0.16);
+  --status-warning: #D5A04A; /* Âmbar */
+  --status-warning-bg: rgba(213, 160, 74, 0.16);
+  --status-danger: #C87859; /* Terracota */
+  --status-danger-bg: rgba(200, 120, 89, 0.16);
+  --status-info: #7CAFC4; /* Azul acinzentado */
+  --status-info-bg: rgba(124, 175, 196, 0.16);
+  --status-ai: #AD8BCF; /* Lavanda envelhecida */
+  --status-ai-bg: rgba(173, 139, 207, 0.16);
+
+  /* Efeitos Glassmorphism e Sombras */
+  --glass-blur: blur(14px);
+  --glass-shadow: 0 16px 40px -8px rgba(10, 18, 14, 0.65), 0 0 1px 1px rgba(197, 161, 93, 0.14);
+  --glow-gold: 0 0 20px rgba(197, 161, 93, 0.28);
+  --glow-bronze: 0 0 20px rgba(121, 86, 56, 0.32);
+
+  /* Tipografia */
+  --font-serif: 'Cinzel', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-/* :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h1, h2, h3, .serif-heading {
+  font-family: var(--font-serif);
+  color: var(--text-primary);
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+/* Scrollbar com tema Dark Academia */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
+::-webkit-scrollbar-track {
+  background: rgba(24, 41, 35, 0.7);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(121, 86, 56, 0.45);
   border-radius: 4px;
-  color: var(--text-h);
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
-} */
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gold);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}

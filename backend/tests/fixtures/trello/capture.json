@@ -1,0 +1,72 @@
+{
+  "board": {
+    "id": "60c72b2f9b1d8b2e1a3f5c90",
+    "name": "Sprint Board",
+    "url": "https://trello.com/b/sprintboard",
+    "shortLink": "sprntbrd"
+  },
+  "lists": [
+    {
+      "id": "60c72b2f9b1d8b2e1a3f5c91",
+      "name": "A Fazer",
+      "closed": false,
+      "pos": 1
+    },
+    {
+      "id": "60c72b2f9b1d8b2e1a3f5c92",
+      "name": "Concluído",
+      "closed": false,
+      "pos": 2
+    }
+  ],
+  "cards": [
+    {
+      "id": "60c72b2f9b1d8b2e1a3f5c93",
+      "name": "Implementar autenticação JWT",
+      "idList": "60c72b2f9b1d8b2e1a3f5c92",
+      "url": "https://trello.com/c/ab12cd34/implementar-jwt",
+      "shortLink": "ab12cd34",
+      "closed": false,
+      "attachments": [
+        {
+          "id": "60c72b2f9b1d8b2e1a3f5c95",
+          "name": "PR no GitHub",
+          "url": "https://github.com/PepeSlime2/Cognis/pull/2"
+        }
+      ]
+    },
+    {
+      "id": "60c72b2f9b1d8b2e1a3f5c94",
+      "name": "Criar tela de login",
+      "idList": "60c72b2f9b1d8b2e1a3f5c91",
+      "url": "https://trello.com/c/xy98zw76/criar-tela-login",
+      "shortLink": "xy98zw76",
+      "closed": false,
+      "attachments": [
+        {
+          "id": "60c72b2f9b1d8b2e1a3f5c96",
+          "name": "Issue no GitHub",
+          "url": "https://github.com/PepeSlime2/Cognis/issues/1"
+        }
+      ]
+    },
+    {
+      "id": "60c72b2f9b1d8b2e1a3f5c97",
+      "name": "Configuração de CI/CD",
+      "idList": "60c72b2f9b1d8b2e1a3f5c92",
+      "url": "https://trello.com/c/ci88cd99/configuracao-ci-cd",
+      "shortLink": "ci88cd99",
+      "closed": false,
+      "attachments": []
+    },
+    {
+      "id": "60c72b2f9b1d8b2e1a3f5c98",
+      "name": "Tarefa sem vínculo",
+      "idList": "60c72b2f9b1d8b2e1a3f5c91",
+      "url": "https://trello.com/c/un12lk34/tarefa-sem-vinculo",
+      "shortLink": "un12lk34",
+      "closed": false,
+      "attachments": []
+    }
+  ]
+}

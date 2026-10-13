@@ -7,10 +7,10 @@ import type { ProjectSummary, ProviderConnection } from "../../api/client";
 
 import iconTrello from "../../assets/trelloicon.png";
 import iconGirHub from "../../assets/github-white-icon.webp";
+import cognisLogo from "../../assets/CognisLogotipo.png";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGear } from '@fortawesome/free-solid-svg-icons';
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
 type TopSideBarProps = {
   onLogout: () => void | Promise<void>;
@@ -47,109 +47,108 @@ const TopSideBar = ({ onLogout, connections, projectId }: TopSideBarProps) => {
   };
 
   return (
-        <div className={styles.sideBar}>
-          <div className={styles.topSideBarContainer}>
-            <div className={styles.topSideBarTitle}>
-              <p>Fontes de Dados</p>
-            </div>
-            <div className={styles.containerIcons}>
-              <button className={styles.gitHubContainer} onClick={() => void connectGithub()} type="button">
-                <div className={styles.gitHubIcon}>
-                  <img src={iconGirHub} alt="Github Icon" />
-                  <p>GitHub</p>
-                </div>
-                <div className={styles.serviceStatus}>
-                  <p>{connections.github ? `Conectado: ${connections.github.username}` : 'Não conectado'}</p>
-                </div>
-              </button>
-              <button className={styles.trelloContainer} onClick={() => void connectTrello()} type="button">
-                <div className={styles.trelloIcon}>
-                  <img src={iconTrello} alt="Trello Icon" />
-                  <p>Trello</p>
-                </div>
-                <div className={styles.serviceStatus}>
-                  <p>{connections.trello ? `Conectado: ${connections.trello.username}` : 'Não conectado'}</p>
-                </div>
-              </button>
-              {connectionError && <p className={styles.serviceError} role="alert">{connectionError}</p>}
-              <div className={styles.syncContainer}>
-                <div className={styles.syncIcon}>
-                  <FontAwesomeIcon
-                    className={styles.iconReload}
-                    icon="rotate-right"
-                    style={{ color: "#ccc" }}
-                  />
-                  <div className={styles.serviceSync}>
-                    <p className={styles.serviceObs}>Coleta Automática</p>
-                    <p className={styles.serviceInterval}>A cada 1 hora</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className={styles.projectActiveContainer}>
-            <label htmlFor="active-project">Projeto ativo</label>
-            <select
-              id="active-project"
-              value={projectId ?? ''}
-              onChange={(event) => navigate(event.target.value ? `/p/${event.target.value}` : '/')}
-              disabled={projectsQuery.isPending || projectsQuery.isError}
-            >
-              <option value="">Todos os projetos</option>
-              {projectsQuery.data?.map((project) => (
-                <option key={project.id} value={project.id}>{project.name}</option>
-              ))}
-            </select>
-            {projectsQuery.isPending && <p>Carregando projetos...</p>}
-            {projectsQuery.isError && <p className={styles.serviceError} role="alert">Não foi possível carregar projetos.</p>}
-            {projectsQuery.data?.length === 0 && <p>Nenhum projeto criado.</p>}
-          </div>
-          <div className={styles.midSideBarContainer}>
-            <div className={styles.processoContainer}>
-              <div className={styles.titleProcessamento}>
-                Relatórios
-              </div>
-              <div className={styles.contentContainer}>
-                <div className={styles.serviceContent}>
-                    Sprint
-                </div>
-                <div className={styles.serviceContent}>
-                    Gerencial
-                </div>
-                <div className={styles.serviceContent}>
-                    Individual
-                </div>
-                <div className={styles.serviceContent}>
-                    Gargalos
-                </div>
-                 <div className={styles.serviceContent}>
-                    Colaboração
-                </div>
-              </div>
-            </div>
-          </div>          
-          <div className={styles.settingsContainer}>
-            <button className={styles.perfilContainer} onClick={() => navigate('/settings')} type="button">
-              <p>Configurações</p>
-            </button>
-            <div className={styles.settingsConfig}>
-              <FontAwesomeIcon icon={faGear} className={styles.settingsIcon} />
-            </div>
-            <button onClick={() => void onLogout()} type="button">Sair</button>
-          </div>
-          <div className={styles.overlay}>
-              <div className={styles.configModal}>
-                <div className={styles.headerContainer}>
-                  <div className={styles.titleContainer}>
-                    Configurações Cognis
-                  </div>
-                  <div className={styles.closeButton}>
-                    <FontAwesomeIcon icon={faXmark} />
-                  </div>
-                </div>
-              </div>
-            </div>
+    <aside className={styles.sideBar} aria-label="Navegação e fontes de dados">
+      <div className={styles.brandHeader}>
+        <div className={styles.brandLogo} onClick={() => navigate('/')} role="button" tabIndex={0} title="COGNIS">
+          <img src={cognisLogo} alt="COGNIS" className={styles.brandLogoImg} />
         </div>
+        <span className={styles.brandTag}>v1.2</span>
+      </div>
+
+      <div className={styles.topSideBarContainer}>
+        <div className={styles.topSideBarTitle}>
+          <span>Fontes de Dados</span>
+        </div>
+        <div className={styles.containerIcons}>
+          <button className={styles.gitHubContainer} onClick={() => void connectGithub()} type="button">
+            <div className={styles.gitHubIcon}>
+              <img src={iconGirHub} alt="GitHub" />
+              <p>GitHub</p>
+            </div>
+            <div className={styles.serviceStatus}>
+              <span className={connections.github ? styles.statusDotConnected : styles.statusDotDisconnected} />
+              <p>{connections.github ? `Conectado: ${connections.github.username}` : 'Não conectado'}</p>
+            </div>
+          </button>
+          <button className={styles.trelloContainer} onClick={() => void connectTrello()} type="button">
+            <div className={styles.trelloIcon}>
+              <img src={iconTrello} alt="Trello" />
+              <p>Trello</p>
+            </div>
+            <div className={styles.serviceStatus}>
+              <span className={connections.trello ? styles.statusDotConnected : styles.statusDotDisconnected} />
+              <p>{connections.trello ? `Conectado: ${connections.trello.username}` : 'Não conectado'}</p>
+            </div>
+          </button>
+          {connectionError && <p className={styles.serviceError} role="alert">{connectionError}</p>}
+          <div className={styles.syncContainer}>
+            <div className={styles.syncIcon}>
+              <FontAwesomeIcon
+                className={styles.iconReload}
+                icon="rotate-right"
+              />
+              <div className={styles.serviceSync}>
+                <p className={styles.serviceObs}>Coleta Automática</p>
+                <p className={styles.serviceInterval}>A cada 1 hora</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.projectActiveContainer}>
+        <label htmlFor="active-project">Projeto ativo</label>
+        <select
+          id="active-project"
+          value={projectId ?? ''}
+          onChange={(event) => navigate(event.target.value ? `/p/${event.target.value}` : '/')}
+          disabled={projectsQuery.isPending || projectsQuery.isError}
+        >
+          <option value="">Todos os projetos</option>
+          {projectsQuery.data?.map((project) => (
+            <option key={project.id} value={project.id}>{project.name}</option>
+          ))}
+        </select>
+        {projectsQuery.isPending && <p>Carregando projetos...</p>}
+        {projectsQuery.isError && <p className={styles.serviceError} role="alert">Não foi possível carregar projetos.</p>}
+        {projectsQuery.data?.length === 0 && <p>Nenhum projeto criado.</p>}
+      </div>
+
+      <div className={styles.midSideBarContainer}>
+        <div className={styles.processoContainer}>
+          <div className={styles.titleProcessamento}>
+            Relatórios
+          </div>
+          <div className={styles.contentContainer}>
+            <div className={styles.serviceContent}>
+              Sprint
+            </div>
+            <div className={styles.serviceContent}>
+              Gerencial
+            </div>
+            <div className={styles.serviceContent}>
+              Individual
+            </div>
+            <div className={styles.serviceContent}>
+              Gargalos
+            </div>
+            <div className={styles.serviceContent}>
+              Colaboração
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.settingsContainer}>
+        <button className={styles.perfilContainer} onClick={() => navigate('/settings')} type="button">
+          <FontAwesomeIcon icon={faGear} className={styles.settingsIcon} />
+          <p>Configurações</p>
+        </button>
+        <button className={styles.logoutButton} onClick={() => void onLogout()} type="button">
+          Sair
+        </button>
+      </div>
+    </aside>
   );
 };
 

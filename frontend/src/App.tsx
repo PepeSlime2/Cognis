@@ -20,15 +20,25 @@ function SessionPage() {
   })
 
   if (sessionQuery.isPending) {
-    return <main><h1>Carregando...</h1></main>
+    return (
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#02001b', color: '#94a3b8' }}>
+        <p>Carregando sessão...</p>
+      </main>
+    )
   }
 
   if (sessionQuery.isError && !(sessionQuery.error instanceof ApiError && sessionQuery.error.status === 401)) {
     return (
-      <main>
-        <h1>Não foi possível carregar sua sessão</h1>
-        <p>{sessionQuery.error.message}</p>
-        <button onClick={() => void sessionQuery.refetch()} type="button">Tentar novamente</button>
+      <main style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#02001b', color: '#f8fafc', gap: 14 }}>
+        <h2>Não foi possível carregar sua sessão</h2>
+        <p style={{ color: '#fca5a5' }}>{sessionQuery.error.message}</p>
+        <button
+          onClick={() => void sessionQuery.refetch()}
+          type="button"
+          style={{ padding: '10px 18px', borderRadius: 8, border: '1px solid rgba(139,92,246,0.3)', background: 'rgba(28,20,80,0.6)', color: '#fff', cursor: 'pointer' }}
+        >
+          Tentar novamente
+        </button>
       </main>
     )
   }

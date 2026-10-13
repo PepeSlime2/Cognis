@@ -15,6 +15,8 @@ from .db import session as db_session
 from .db.graph_schema import ensure_graph_schema
 from .db.models import ProjectSource, SyncRun, utc_now
 from .github_v2_collector import sync_github_project
+from .identity_service import sync_people_for_project
+from .linker import link_project_in_graph
 from .neo4j_v2_writer import Neo4jV2Writer
 
 ACTIVE_STATUSES = ("queued", "running")
@@ -180,6 +182,41 @@ def _run_project_sync(
                     )
                 unresolved_relationships += counts["unresolved_relationships"]
 
+            if hasattr(driver, "session"):
+                try:
+                    people_stats = sync_people_for_project(driver, project_id, session)
+                    if people_stats.get("people_created"):
+                        node_counts["Person"] = (
+                            node_counts.get("Person", 0) + people_stats["people_created"]
+                        )
+                    if people_stats.get("relationships_created"):
+                        relationship_counts["TEM_CONTA"] = (
+                            relationship_counts.get("TEM_CONTA", 0)
+                            + people_stats["relationships_created"]
+                        )
+                except Exception as e:
+                    errors.append(
+                        {
+                            "code": "people_sync_error",
+                            "message": f"Erro ao sincronizar pessoas: {e}",
+                        }
+                    )
+
+                try:
+                    link_stats = link_project_in_graph(driver, project_id)
+                    if link_stats.get("text_links"):
+                        relationship_counts["RELACIONADA_A"] = (
+                            relationship_counts.get("RELACIONADA_A", 0)
+                            + link_stats["text_links"]
+                        )
+                except Exception as e:
+                    errors.append(
+                        {
+                            "code": "links_sync_error",
+                            "message": f"Erro ao resolver vínculos do projeto: {e}",
+                        }
+                    )
+
             current_run = session.get(SyncRun, run_id)
             if current_run is None:
                 raise RuntimeError("Execução de sincronização não encontrada.")
@@ -195,9 +232,10 @@ def _run_project_sync(
                     else "Sincronização concluída com falhas."
                 ),
             }
+            repo_failed_count = sum(1 for e in errors if "source_id" in e)
             current_run.stats_json = {
                 "repositories_succeeded": len(completed),
-                "repositories_failed": len(errors),
+                "repositories_failed": repo_failed_count,
                 "nodes": node_counts,
                 "relationships": relationship_counts,
                 "unresolved_relationships": unresolved_relationships,

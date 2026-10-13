@@ -82,9 +82,13 @@ function SettingsPage() {
   if (sessionQuery.isError) {
     return (
       <main className={styles.page}>
-        <h1>Não foi possível carregar sua sessão</h1>
-        <p role="alert">{sessionQuery.error.message}</p>
-        <button type="button" onClick={() => void sessionQuery.refetch()}>Tentar novamente</button>
+        <div className={styles.panel}>
+          <h2>Não foi possível carregar sua sessão</h2>
+          <p className={styles.error} role="alert">{sessionQuery.error.message}</p>
+          <button className={styles.secondaryButton} type="button" onClick={() => void sessionQuery.refetch()}>
+            Tentar novamente
+          </button>
+        </div>
       </main>
     )
   }

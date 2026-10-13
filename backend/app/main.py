@@ -34,6 +34,8 @@ from .trello_tokens import (
     refresh_if_needed,
 )
 from .projects_router import router as projects_router
+from .people_router import router as people_router
+from .links_router import router as links_router
 from .graph_router import router as graph_router
 from .project_sync import mark_interrupted_sync_runs
 
@@ -66,6 +68,8 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(projects_router)
+app.include_router(people_router)
+app.include_router(links_router)
 app.include_router(graph_router)
 
 

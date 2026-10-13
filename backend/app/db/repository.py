@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..security import decrypt_token, encrypt_token
-from .models import Project, ProviderConnection
+from .models import PersonOverride, Project, ProviderConnection
 
 
 def get_project_for_user(session: Session, project_id: str, user_id: str) -> Project:
@@ -99,3 +99,48 @@ def disconnect_provider(session: Session, user_id: str, provider: str) -> None:
     )
     if connection is not None:
         session.delete(connection)
+
+
+def get_person_overrides(session: Session, project_id: str) -> list[PersonOverride]:
+    return list(
+        session.scalars(
+            select(PersonOverride).where(PersonOverride.project_id == project_id)
+        ).all()
+    )
+
+
+def get_person_override(
+    session: Session, project_id: str, person_uid: str
+) -> PersonOverride | None:
+    return session.get(PersonOverride, (project_id, person_uid))
+
+
+def set_person_override(
+    session: Session,
+    project_id: str,
+    person_uid: str,
+    display_name: str | None = None,
+    excluded: bool | None = None,
+    role: str | None = None,
+) -> PersonOverride:
+    override = session.get(PersonOverride, (project_id, person_uid))
+    if override is None:
+        override = PersonOverride(
+            project_id=project_id,
+            person_uid=person_uid,
+            display_name=display_name.strip() if display_name else None,
+            excluded=excluded if excluded is not None else False,
+            role=role.strip() if role else None,
+        )
+        session.add(override)
+    else:
+        if display_name is not None:
+            override.display_name = display_name.strip() if display_name else None
+        if excluded is not None:
+            override.excluded = excluded
+        if role is not None:
+            override.role = role.strip() if role else None
+    session.commit()
+    session.refresh(override)
+    return override
+
