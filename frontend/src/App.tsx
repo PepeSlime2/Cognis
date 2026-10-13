@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import './App.css'
 import { ApiError, api, sessionQueryKey } from './api/client'
 import type { SessionResponse } from './api/client'
 import Auth from './components/Auth/Auth'
 import Home from './pages/Home/Home'
+import SettingsPage from './pages/Settings/SettingsPage'
 import TrelloCallback from './pages/TrelloCallback/TrelloCallback'
 
 function SessionPage() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const { projectId } = useParams<{ projectId: string }>()
   const [logoutError, setLogoutError] = useState('')
   const sessionQuery = useQuery({
     queryKey: sessionQueryKey,
@@ -61,7 +63,7 @@ function SessionPage() {
   return (
     <>
       {logoutError && <p role="alert">{logoutError}</p>}
-      <Home onLogout={logout} connections={session.connections} />
+      <Home onLogout={logout} connections={session.connections} projectId={projectId} />
     </>
   )
 }
@@ -70,6 +72,8 @@ function App() {
   return (
     <Routes>
       <Route path="/trello-callback" element={<TrelloCallback />} />
+      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/p/:projectId" element={<SessionPage />} />
       <Route path="/login" element={<SessionPage />} />
       <Route path="/" element={<SessionPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />

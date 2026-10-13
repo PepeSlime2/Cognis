@@ -116,6 +116,27 @@
     font-size: 11px;
 }
 
+.projectActiveContainer{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid rgb(0, 79, 128);
+    border-radius: 5px;
+    background-color: rgba(13, 3, 149, 0.153);
+    color: #ccc;
+    font-size: 12px;
+}
+
+.projectActiveContainer select{
+    width: 100%;
+    padding: 8px;
+    border: 1px solid rgb(0, 79, 128);
+    border-radius: 4px;
+    background: #08052b;
+    color: #eee;
+}
+
 .settingsContainer{
     display: flex;
     flex-direction: row;

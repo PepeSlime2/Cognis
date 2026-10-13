@@ -61,16 +61,104 @@ export const api = {
           }),
     })
   },
+
+  put<T>(path: string, body: unknown): Promise<T> {
+    return request<T>(path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  },
+
+  delete<T>(path: string): Promise<T> {
+    return request<T>(path, { method: 'DELETE' })
+  },
 }
 
 export type ProviderConnection = {
   username: string
   connected_at?: string
+  status?: string
+}
+
+export type ProjectSummary = {
+  id: string
+  name: string
+  timezone: string
+  history_days: number
+  auto_sync: boolean
+  sync_interval_min: number
+  next_sync_at?: string | null
+  created_at: string
+}
+
+export type GraphLayer = 'all' | 'people' | 'tasks' | 'artifacts'
+
+export type GraphNodeData = {
+  id: string
+  label: string
+  type: string
+  size_metric: number
+  community: string | null
+  flags: string[]
+  metrics: Record<string, number>
+  status_category: string | null
+  url: string | null
+}
+
+export type GraphEdgeData = {
+  id: string
+  source: string
+  target: string
+  type: string
+  weight: number
+  breakdown: Record<string, unknown>
+}
+
+export type ProjectGraph = {
+  elements: {
+    nodes: Array<{ data: GraphNodeData }>
+    edges: Array<{ data: GraphEdgeData }>
+  }
+  truncated: boolean
+  stats: {
+    nodes: number
+    edges: number
+  }
+}
+
+export type SyncRun = {
+  run_id: string
+  project_id: string
+  status: 'queued' | 'running' | 'success' | 'partial' | 'failed'
+  started_at: string
+  finished_at: string | null
+  progress: {
+    stage?: string
+    done?: number
+    total?: number
+    message?: string
+  }
+  stats: Record<string, unknown>
+  errors: Array<{
+    code?: string
+    message?: string
+    source_id?: string
+  }>
+}
+
+export type SyncStartResponse = {
+  run_id: string
+  status: 'queued' | 'running'
+  progress: SyncRun['progress']
 }
 
 export type SessionResponse = {
   user_id: string
+  email?: string | null
+  name?: string | null
   connections: Record<string, ProviderConnection>
 }
 
 export const sessionQueryKey = ['auth', 'me'] as const
+export const projectsQueryKey = ['projects'] as const

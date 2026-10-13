@@ -1,0 +1,291 @@
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 28px clamp(18px, 4vw, 48px);
+  color: #e5e7eb;
+  background: #02001b;
+  text-align: left;
+}
+
+.header,
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.header {
+  margin: 0 auto 24px;
+  max-width: 1100px;
+}
+
+.header h1 {
+  margin: 4px 0 8px;
+  color: #f3f4f6;
+  font-size: clamp(28px, 4vw, 42px);
+  letter-spacing: -0.5px;
+}
+
+.eyebrow {
+  color: #8e89ff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.subtitle,
+.helper,
+.projectMeta {
+  color: #aeb7cc;
+}
+
+.subtitle {
+  max-width: 680px;
+}
+
+.panel {
+  max-width: 1100px;
+  margin: 0 auto 18px;
+  padding: 20px;
+  border: 1px solid rgb(0, 79, 128);
+  border-radius: 8px;
+  background: rgba(13, 3, 149, 0.13);
+  backdrop-filter: blur(10px);
+}
+
+.panel h2 {
+  margin: 0 0 6px;
+  color: #f3f4f6;
+  font-size: 19px;
+}
+
+.helper {
+  margin: 0;
+  font-size: 13px;
+}
+
+.createForm {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.createForm input,
+.projectPicker select {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #174b70;
+  border-radius: 5px;
+  outline-color: #7770ff;
+  background: #08052b;
+  color: #f3f4f6;
+}
+
+.createForm input {
+  flex: 1;
+}
+
+.projectPicker {
+  display: grid;
+  gap: 6px;
+  min-width: 200px;
+  color: #b9c2d5;
+  font-size: 12px;
+}
+
+.projectPicker select {
+  width: 100%;
+}
+
+.primaryButton,
+.secondaryButton {
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: #f8fafc;
+  cursor: pointer;
+  font: inherit;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.primaryButton {
+  background: #312e81;
+  border-color: #514bd0;
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+.secondaryButton {
+  background: rgba(12, 3, 149, 0.35);
+  border-color: rgb(0, 79, 128);
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: rgba(12, 3, 149, 0.65);
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.projectList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.projectCard {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #174b70;
+  border-radius: 6px;
+  background: rgba(12, 3, 149, 0.24);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.projectCard:hover,
+.selectedProject {
+  border-color: #7770ff;
+  background: rgba(36, 0, 74, 0.72);
+}
+
+.projectName {
+  color: #f3f4f6;
+  font-weight: 600;
+}
+
+.projectMeta {
+  font-size: 12px;
+}
+
+.sourceColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.sourceGroup {
+  min-width: 0;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #174b70;
+  border-radius: 6px;
+}
+
+.sourceGroup legend {
+  padding: 0 6px;
+  color: #e5e7eb;
+  font-weight: 600;
+}
+
+.sourceOption {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 4px;
+  color: #d8deeb;
+  overflow-wrap: anywhere;
+}
+
+.sourceOption + .sourceOption {
+  border-top: 1px solid rgba(89, 115, 154, 0.25);
+}
+
+.sourceOption input {
+  accent-color: #7770ff;
+}
+
+.counter {
+  flex: 0 0 auto;
+  color: #b9c2d5;
+  font-size: 12px;
+}
+
+.providerActionRow {
+  display: grid;
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.saveRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.emptyState {
+  color: #aeb7cc;
+  font-size: 13px;
+  margin: 0;
+}
+
+.error,
+.errorBlock {
+  color: #ff9d9d;
+}
+
+.error,
+.success {
+  max-width: 1100px;
+  margin: 0 auto 14px;
+  padding: 10px 12px;
+  border-radius: 5px;
+  background: rgba(100, 15, 32, 0.32);
+}
+
+.success {
+  color: #8ff0aa;
+  background: rgba(13, 100, 52, 0.22);
+}
+
+.errorBlock {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 700px) {
+  .header,
+  .sectionHeader {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .createForm {
+    flex-direction: column;
+  }
+
+  .sourceColumns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

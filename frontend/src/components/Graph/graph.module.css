@@ -1,0 +1,379 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+  color: #e9e9ff;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 22px;
+  border: 1px solid #16466b;
+  border-radius: 12px;
+  background: linear-gradient(115deg, rgba(15, 23, 58, 0.94), rgba(20, 11, 57, 0.92));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.heading h1 {
+  margin: 3px 0 4px;
+  font-size: clamp(21px, 2vw, 28px);
+}
+
+.eyebrow {
+  margin: 0;
+  color: #8f89df;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.subtitle {
+  margin: 0;
+  color: #aaaecb;
+  font-size: 13px;
+}
+
+.syncButton,
+.stateCard button {
+  border: 1px solid #6255cb;
+  border-radius: 7px;
+  padding: 10px 15px;
+  background: linear-gradient(110deg, #3a2f91, #293e96);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 160ms ease, transform 160ms ease;
+}
+
+.syncButton:hover,
+.stateCard button:hover {
+  filter: brightness(1.18);
+  transform: translateY(-1px);
+}
+
+.syncButton:disabled {
+  cursor: progress;
+  opacity: 0.65;
+  transform: none;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #1d3b64;
+  border-radius: 10px;
+  background: rgba(11, 13, 47, 0.86);
+}
+
+.layerTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 3px;
+  border: 1px solid rgba(96, 77, 193, 0.34);
+  border-radius: 8px;
+  background: rgba(39, 22, 83, 0.5);
+}
+
+.layerTabs button,
+.graphActions button,
+.searchForm button {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: transparent;
+  color: #babbd5;
+  cursor: pointer;
+}
+
+.layerTabs button:hover,
+.graphActions button:hover,
+.searchForm button:hover {
+  border-color: #3a5b8a;
+  color: #fff;
+}
+
+.layerTabs .activeLayer {
+  border-color: #5748ad;
+  background: linear-gradient(110deg, rgba(90, 53, 167, 0.75), rgba(37, 63, 134, 0.75));
+  color: #fff;
+}
+
+.searchForm {
+  display: flex;
+  flex: 1 1 240px;
+  gap: 5px;
+  min-width: 170px;
+}
+
+.searchForm input,
+.weightFilter select {
+  min-width: 0;
+  border: 1px solid #263f69;
+  border-radius: 6px;
+  padding: 8px 9px;
+  background: #090d2e;
+  color: #e9e9ff;
+}
+
+.weightFilter input[type="range"] {
+  width: 82px;
+  accent-color: #8e73ff;
+}
+
+.searchForm input {
+  flex: 1;
+}
+
+.searchForm input::placeholder {
+  color: #777c9c;
+}
+
+.searchForm button {
+  border-color: #344c7f;
+  background: #151a48;
+  color: #dfe3ff;
+}
+
+.weightFilter,
+.botFilter {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #b7bbd6;
+  font-size: 12px;
+}
+
+.botFilter input {
+  accent-color: #7862e8;
+}
+
+.errorBanner,
+.runStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 0;
+  border: 1px solid rgba(226, 87, 126, 0.48);
+  border-radius: 8px;
+  padding: 10px 13px;
+  background: rgba(99, 22, 65, 0.26);
+  color: #ffbdce;
+  font-size: 13px;
+}
+
+.errorBanner button {
+  border: 0;
+  background: none;
+  color: #fff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.runStatus {
+  border-color: #314475;
+  background: rgba(24, 30, 80, 0.56);
+  color: #c9d4ff;
+}
+
+.runStatus strong {
+  color: #fff;
+}
+
+.runError {
+  color: #ffadbf;
+}
+
+.summaryBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  color: #aaaecb;
+  font-size: 12px;
+}
+
+.truncatedNotice {
+  color: #e6c28b;
+}
+
+.graphActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.graphActions button {
+  border-color: #283d6c;
+  background: rgba(17, 23, 62, 0.8);
+  font-size: 11px;
+}
+
+.graphActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.visualization {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 12px;
+  min-height: 540px;
+}
+
+.canvasPanel,
+.detailsPanel,
+.stateCard {
+  border: 1px solid #1c4268;
+  border-radius: 11px;
+  background: rgba(8, 8, 36, 0.92);
+}
+
+.canvasPanel {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 540px;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(100, 119, 183, 0.2) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+.graphCanvas {
+  width: 100%;
+  height: 540px;
+}
+
+.legend {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  left: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 15px;
+  padding: 8px 10px;
+  border: 1px solid rgba(49, 65, 109, 0.8);
+  border-radius: 7px;
+  background: rgba(5, 7, 29, 0.88);
+  color: #c4c8e0;
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.personColor { background: #36b6e5; }
+.taskColor { background: #9069e5; }
+.prColor { background: #5a82e4; }
+.repoColor { background: #25b8a9; }
+.moduleColor { background: #94c75f; }
+
+.detailsPanel {
+  align-self: start;
+  min-height: 180px;
+  padding: 16px;
+  color: #b9bfdc;
+  overflow-wrap: anywhere;
+}
+
+.detailsPanel h2 {
+  margin: 8px 0;
+  color: #fff;
+  font-size: 17px;
+}
+
+.detailsPanel p {
+  margin: 10px 0;
+  font-size: 12px;
+}
+
+.detailsPanel a {
+  display: inline-block;
+  margin-top: 8px;
+  color: #86d7ff;
+  font-size: 12px;
+}
+
+.nodeType,
+.flag {
+  display: inline-block;
+  border: 1px solid #354a7e;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #c8c9ff;
+  font-size: 10px;
+}
+
+.flag {
+  margin: 8px 5px 0 0;
+  border-color: #845743;
+  color: #ffcc9f;
+}
+
+.stateCard {
+  padding: 24px;
+  color: #b8bdd8;
+}
+
+.stateCard h2 {
+  margin-top: 0;
+  color: #f4f2ff;
+  font-size: 18px;
+}
+
+.stateCard p {
+  line-height: 1.55;
+}
+
+@media (max-width: 900px) {
+  .visualization {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detailsPanel {
+    min-height: unset;
+  }
+}
+
+@media (max-width: 600px) {
+  .heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .syncButton {
+    width: 100%;
+  }
+
+  .graphActions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .canvasPanel,
+  .graphCanvas {
+    min-height: 440px;
+    height: 440px;
+  }
+}

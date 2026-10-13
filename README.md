@@ -54,3 +54,31 @@ npm run dev
 ```
 
 Acesse `http://localhost:5173`.
+
+## Fixtures de contrato (GitHub e Trello)
+
+Para capturar amostras reais redigidas para testes dos coletores, repositórios
+públicos do GitHub podem ser consultados sem token. Para repositórios privados,
+configure `COGNIS_FIXTURE_GITHUB_TOKEN` temporariamente usando entrada segura e
+execute na raiz do projeto:
+
+```powershell
+.\backend\.venv\Scripts\python.exe .\scripts\capture_fixtures.py --github-repo PepeSlime2/SongsMix
+```
+
+Para um repositório privado, configure o token em variável de ambiente apenas
+durante a execução:
+
+```powershell
+$secureToken = Read-Host "Token GitHub" -AsSecureString
+$env:COGNIS_FIXTURE_GITHUB_TOKEN = [System.Net.NetworkCredential]::new("", $secureToken).Password
+.\backend\.venv\Scripts\python.exe .\scripts\capture_fixtures.py --github-repo owner/repo
+Remove-Item Env:COGNIS_FIXTURE_GITHUB_TOKEN
+Remove-Variable secureToken
+```
+
+Para o Trello, use o mesmo padrão de entrada segura com `COGNIS_FIXTURE_TRELLO_TOKEN`
+e `--trello-board-id <id>`. O script não imprime tokens ou respostas da API;
+remove e-mails, logins, URLs pessoais e texto livre antes de salvar em
+`backend/tests/fixtures/`. Revise as amostras antes de adicioná-las ao Git e nunca
+coloque tokens em arquivos versionados.

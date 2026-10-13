@@ -1,4 +1,4 @@
-# COGNIS — Especificação de Desenvolvimento (v1.0)
+# COGNIS — Especificação de Desenvolvimento (v1.2)
 
 > **COGNIS – O projeto além das tarefas.** Plataforma que transforma dados de GitHub e Trello em um grafo interativo de colaboração, calcula métricas de forma determinística, usa um LLM **local** (Ollama + Llama 3.1 8B) só para *interpretar* esses números e gera relatórios automáticos.
 >
@@ -777,7 +777,8 @@ src/
   app/{Router.tsx, ProjectContext.tsx}
   components/
     Auth/ (existe)  TopSideBar/ (existe)  MainContent/ (existe)
-    Graph/{GraphCanvas.tsx, GraphToolbar.tsx, GraphLegend.tsx, NodeDetails.tsx, graphStyle.ts, layouts.ts}
+    Graph/{GraphShell.tsx, GraphTopBar.tsx, GraphCanvas.tsx, GraphToolbar.tsx, GraphLegend.tsx, NodeDetails.tsx, graphStyle.ts, layouts.ts}   # GraphShell, GraphTopBar [NOVO] (§12.4.1)
+    Dock/{LeftDock.tsx, RightDock.tsx}                                                                                                      # [NOVO] (§12.4.1)
     Insights/{SignalsPanel.tsx, AnalysisPanel.tsx}
     Metrics/{MetricCard.tsx, PeopleTable.tsx, ModulesTable.tsx, FlowPanel.tsx, EvolutionChart.tsx}
     Settings/{Sources.tsx, Columns.tsx, Sprints.tsx, Weights.tsx, Identity.tsx, Links.tsx}
@@ -801,7 +802,75 @@ src/
 | Lista “Relatórios” (Sprint, Gerencial, Individual, Gargalos, Colaboração) | abre `ReportDialog` (tipo pré-selecionado, janela, formatos, IA on/off, anonimizar) |
 | “Configurações” + modal sempre renderizado | modal controlado por estado (`open`), com abas: Fontes, Colunas, Sprints, Pesos e limiares, Pessoas, Vínculos, Dados (excluir projeto) |
 | Chips “Todos · Pessoas · Atividades · Artefatos” | parâmetro `layer=all|people|tasks|artifacts` do `/graph` |
-| “Main Content Grafos” | `GraphCanvas` (§12.5) |
+| “Main Content Grafos” | `GraphCanvas` (§12.5), na célula central do `GraphShell` em tela cheia (§12.4.1) |
+
+### 12.4.1 Layout da tela do grafo (full tela) `[MUDA]` — MUST
+
+**Escopo.** Vale **somente** para a rota `/p/:pid` (grafo = `Home`). As demais rotas de §12.3 mantêm o layout atual até receberem tarefa própria. **Não é redesign** (D-20): cores, tipografia, ícones (FontAwesome) e componentes existentes são mantidos (§12.1: fundo `#02001b`, tema escuro, tokens em `index.css`); muda apenas a organização na tela. As linhas “Sidebar” da tabela de §12.4 passam a viver no `LeftDock` (zona D abaixo). Onde esta seção e §12.5 divergirem sobre **posição** de um controle, **esta seção prevalece**; o conteúdo/comportamento do controle continua o de §12.5.
+
+**Esquema (zonas):**
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ A  GraphTopBar  (56 px)                                                │
+├────────────────────────────────────────────────────────────────────────┤
+│ B  GraphToolbar (48 px)                                                │
+├───────────┬──────────────────────────────────────────┬─────────────────┤
+│ D         │ C  GraphCanvas  (célula 1fr × 1fr)       │ E               │
+│ LeftDock  │    aviso “truncado” (topo, centro)       │ RightDock       │
+│ 280 px    │    EmptyState/erro (centro)              │ 340 px          │
+│ (rail 56) │    GraphLegend (canto inferior esquerdo) │ [Detalhes|Insights]
+└───────────┴──────────────────────────────────────────┴─────────────────┘
+```
+
+**Dimensões e CSS (MUST):**
+- Raiz `GraphShell` (CSS Module próprio): `display:grid; height:100vh; height:100dvh;` (declarar `100vh` primeiro como fallback; `[VERIFICAR]` suporte a `dvh` em MDN). `grid-template-rows: 56px 48px minmax(0,1fr); grid-template-columns: var(--dock-left-w) minmax(0,1fr) var(--dock-right-w); overflow:hidden;`. Zonas A e B usam `grid-column: 1 / -1`. Todo filho de grid leva `min-width:0; min-height:0` (sem isso o canvas não encolhe).
+- `--dock-left-w`: `280px` aberto, `56px` recolhido (rail só com ícones). `--dock-right-w`: `340px` aberto, `0px` recolhido. Variáveis definidas no `GraphShell` conforme `DockState`. Transição de largura de 200 ms; desligada sob `prefers-reduced-motion`.
+- Sem scroll da página nesta rota. Scroll só dentro dos docks (`overflow-y:auto`). O canvas nunca rola.
+- A zona C contém um único `<div>` (container do Cytoscape) com `width:100%; height:100%`, e os overlays com `position:absolute` dentro de C.
+
+**Conteúdo de cada zona:**
+
+| Zona | Componente | Conteúdo (todos os itens são MUST) | Origem |
+|---|---|---|---|
+| A (topo) | `GraphTopBar` | Esquerda: botão ☰ (alterna `LeftDock`), logo COGNIS, `ProjectSelector` + “Novo projeto”. Centro: `WindowPicker` (7 d · 14 d · 30 d · 90 d · sprint · personalizada) e chips de camada Todos · Pessoas · Atividades · Artefatos. Direita: busca por nome (atalho `/`), indicador de sync (ponto + texto: “Sincronizado há …” / “Sincronizando… N%” / “Erro na coleta”), botão **Modo foco**, botão que alterna o `RightDock`, menu do usuário com “Sair” (`POST /auth/logout`, já existe). | `[NOVO]` (reaproveita o JSX/CSS de `TopSideBar`) |
+| B (barra de ferramentas) | `GraphToolbar` | **Tamanho por** · **Cor por** · **Layout** · **Peso mín.** (slider) · toggle **Bots** · toggle **Rótulos** · ferramenta **Caminho mais curto** (toggle) · **Ajustar à tela** · **Exportar PNG** · **Efeitos** (Completo · Leve · Desligado) · **Resetar**. Opções de cada seletor = lista de §12.5. Em tela estreita: `overflow-x:auto`, sem quebra de linha. | `[NOVO]` |
+| C (centro) | `GraphCanvas` + overlays | Canvas Cytoscape (§12.5). Overlays: aviso `truncated` (topo-centro, 8 px abaixo da zona B), `EmptyState`/erro com “Tentar de novo” (centro), `GraphLegend` (inferior esquerdo, margem 12 px, recolhível), `Toast` (inferior centro). | `[MUDA]` |
+| D (lateral esquerda) | `LeftDock` | Seções em acordeão, várias abertas ao mesmo tempo: **Fontes de Dados** (GitHub e Trello, estados de §12.4) · **Coleta** (seletor de intervalo, “Sincronizar agora”, status do último run, barra de progresso com polling de 2 s) · **Relatórios** (Sprint, Gerencial, Individual, Gargalos, Colaboração → abre `ReportDialog`) · botão **Configurações** (abre o modal controlado por `open`). Recolhido: rail com 4 ícones; clicar num ícone abre o dock já naquela seção. | `[MUDA]` (conteúdo atual da sidebar) |
+| E (lateral direita) | `RightDock` | Duas abas: **Detalhes** (`NodeDetails`; para aresta, o `breakdown`) e **Insights** (`SignalsPanel`, botão “Gerar análise com IA”, `AnalysisPanel`). Aba Insights mostra *badge* com a contagem de signals `high`. Detalhes sem seleção: “Clique em um nó ou aresta para ver detalhes.” | `[NOVO]` |
+
+**Estado (MUST) — dois objetos, nomes fixos:**
+
+| Objeto | Campos | Efeito |
+|---|---|---|
+| `GraphViewState` (dono: `GraphPage`) | `window`, `layer`, `includeBots` | **Refazem a consulta** `GET /projects/{pid}/graph` (entram no `queryKey` do React Query). |
+|  | `sizeBy`, `colorBy`, `layout`, `fxLevel` (`'full'\|'lite'\|'off'`), `minWeight`, `showLabels`, `query`, `pathMode`, `selection` (`{kind:'node'\|'edge', id}` ou `null`), `highlightIds` (`string[]`) | **Só cliente**: atualizam estilo/classes do `cy`, sem refetch. |
+| `DockState` (dono: `GraphShell`) | `leftOpen`, `rightOpen`, `rightTab` (`'details'\|'insights'`), `focusMode`, `leftSection` | Persistido em `localStorage` na chave `cognis.ui.docks`, sempre dentro de `try/catch`. Padrão: `leftOpen=true`; `rightOpen=true` se a largura ≥ 1280 px, senão `false`. |
+
+**Comportamentos (MUST):**
+1. **Redimensionamento:** um `ResizeObserver` no container do canvas chama `cy.resize()` dentro de `requestAnimationFrame`. Abrir/fechar dock **não** recria o `cy` e **não** reexecuta o layout; só o botão “Ajustar à tela” (`cy.fit()`) reenquadra. `[VERIFICAR]` `cy.resize()` em js.cytoscape.org.
+2. **Peso mínimo:** o slider filtra **no cliente** (classe que aplica `display: none` nas arestas com `weight < minWeight`). **Não** enviar `min_weight` ao servidor nesta tela (o parâmetro existe em §11, mas não é usado pela UI da v1).
+3. **Seleção:** clicar em nó/aresta → `rightOpen=true`, `rightTab='details'`, `selection` preenchido. Clicar em signal → `rightTab='insights'` e `highlightIds` = nós do signal (§12.5). Clicar no fundo do canvas ou `Esc` → limpa `selection` e `highlightIds`.
+4. **Caminho mais curto:** com `pathMode=true`, o clique seleciona até 2 pessoas; ao ter 2, chama `GET /graph/path` e destaca o resultado (§12.5). `Esc` sai do modo.
+5. **Modo foco:** esconde zonas A, B, D, E; canvas a 100% da janela; resta só um botão flutuante “Sair do modo foco”. Tenta `requestFullscreen()` no elemento raiz do `GraphShell`; se falhar ou não houver suporte, apenas esconde as zonas. `Esc` sai. `[VERIFICAR]` Fullscreen API em MDN.
+6. **Atalhos** (ignorar quando o foco está em `input`, `textarea` ou `select`): `/` foca a busca · `F` ajusta à tela · `[` alterna `LeftDock` · `]` alterna `RightDock` · `Esc` limpa seleção/destaque/modo caminho/modo foco.
+7. **Responsivo:** ≥ 1280 px layout completo (docks empurram o canvas). 900–1279 px: docks abertos viram *overlay* (`position:absolute`, `z-index` de dock) sobre o canvas e `rightOpen` começa `false`. < 900 px: sem colunas; `LeftDock` é *drawer* pela esquerda e `RightDock` é *bottom sheet* de até `60dvh`; `GraphToolbar` rola na horizontal.
+8. **Camadas (`z-index`):** canvas 0 · legenda/avisos 10 · docks em overlay 20 · zonas A e B 30 · `Modal` 100 · `Toast` 110.
+9. **Acessibilidade:** todo botão só com ícone tem `aria-label` em pt-BR; `LeftDock` e `RightDock` são `<aside aria-label="…">`; foco visível; o canvas leva `aria-label` descritivo e a página Pessoas (§12.6) é a alternativa em tabela.
+10. **Estados** (AGENTS.md regra 7): cada zona tem loading, vazio e erro. `LeftDock` e `RightDock` não dependem do carregamento do grafo para renderizar.
+
+**NÃO FAZER (anti-alucinação):**
+- Não criar paleta, fonte ou ícones novos; usar os tokens de `index.css` e o FontAwesome já instalado.
+- Não instalar biblioteca de painéis/layout (ex.: `react-resizable-panels`), kit de UI (MUI, Chakra, Radix etc.) nem wrapper de Cytoscape. O layout é CSS Grid + CSS Modules (D-09).
+- Não implementar redimensionar dock por arraste na v1.
+- Não criar endpoint, parâmetro de query ou campo de resposta que não esteja em §11.
+- Não recriar o `cy`, nem duplicar o canvas, ao abrir/fechar dock ou ao redimensionar a janela (StrictMode: ver §12.5).
+- Não calcular métrica no front (só a normalização 0–1 de §12.5) e não exibir dado falso.
+- Não alterar versões de dependências (AGENTS.md regra 3) nem as rotas de §12.3.
+- Não apagar `Auth`, `TopSideBar` ou `MainContent`: reaproveitar JSX/CSS nas zonas novas e remover arquivos antigos só se a tarefa pedir.
+- Não mexer em páginas fora de `/p/:pid` nesta tarefa.
+
+**Critérios de aceite (F4.5):** (a) em 1440×900 o grafo ocupa toda a área abaixo das zonas A e B, entre os docks, sem scroll da página; (b) recolher/abrir cada dock mantém o grafo (mesma instância, mesmas posições) e o canvas passa a ocupar o espaço livre; (c) todos os controles da tabela acima existem na zona indicada; (d) Modo foco entra e sai com o botão e com `Esc`; (e) atalhos funcionam e não disparam dentro de campos de texto; (f) 1100 px e 700 px seguem o item 7; (g) `DockState` sobrevive a recarregar a página; (h) `npm run lint && npm run build` passam; (i) com `prefers-reduced-motion` não há transição nos docks.
 
 ### 12.5 Grafo interativo (Cytoscape.js) — peça central
 
@@ -809,7 +878,7 @@ src/
 
 **Registro do layout:** `import fcose from 'cytoscape-fcose'; cytoscape.use(fcose)` uma única vez (módulo, não dentro do componente).
 
-**Barra de ferramentas (`GraphToolbar`):**
+**Barra de ferramentas (`GraphToolbar`)** — posição e responsividade em §12.4.1 (a **Janela** fica na `GraphTopBar`; o restante, na `GraphToolbar`):
 - Janela: 7 d · 14 d · 30 d · 90 d · sprint (lista) · personalizada.
 - **Tamanho do nó por**: `degree`, `weighted_degree`, `betweenness`, `closeness`, `pagerank`, `participation`, `uniforme`.
 - **Cor por**: `comunidade`, `tipo`, `risco` (gargalo/isolamento), `categoria da tarefa`.
@@ -822,15 +891,68 @@ src/
 - Forma por tipo: pessoa=`ellipse`, tarefa=`round-rectangle`, PR=`diamond`, repo=`hexagon`, módulo=`barrel`, coluna=`tag`.
 - Cor: paleta de 10 cores acessíveis por comunidade; nós em risco com borda tracejada (`border-style: dashed`) e cor de alerta; legenda sempre visível (`GraphLegend`) explicando cor, tamanho e borda.
 - Aresta: `width: mapData(weight, minW, maxW, 1, 8)`; opacidade proporcional; seta só em arestas dirigidas.
-- **Animações**: `layout.animate = true` (≈600 ms) ao trocar dados/filtros; ao passar o mouse, aplicar classe `faded` aos não-vizinhos com `transition-property: opacity, background-color; transition-duration: 200ms` no estilo do Cytoscape; seleção com pulso (classe `selected` mais grossa). Respeitar `prefers-reduced-motion` (desligar animações).
+- **Animações** (direção criativa, limites e níveis de efeito em §12.5.1; em conflito, §12.5.1 prevalece): `layout.animate = true` (≈600 ms) ao trocar dados/filtros; ao passar o mouse, aplicar classe `faded` aos não-vizinhos com `transition-property: opacity, background-color; transition-duration: 200ms` no estilo do Cytoscape; seleção com pulso (classe `selected` mais grossa). Respeitar `prefers-reduced-motion` (desligar animações).
 
 **Painel de detalhes (`NodeDetails`):** ao clicar em nó — nome, contas vinculadas (ícones GitHub/Trello), métricas relevantes com tooltip vindo de `/metrics/catalog`, flags (“Gargalo de review”, “Isolado”, “Ponte”), top colaboradores, tarefas abertas, link externo (`url`). Ao clicar em aresta — detalhamento (`breakdown`: reviews, comentários, tarefas, módulos).
 
-**Painel de Insights (lateral recolhível):** lista de *signals* (ordem: `high`→`medium`→`info`), clicar num signal **destaca** os nós envolvidos no grafo; botão “Gerar análise com IA” → `AnalysisPanel` (polling do job, selo §9.8, “Ver dados usados”).
+**Painel de Insights (aba “Insights” do `RightDock`, §12.4.1):** lista de *signals* (ordem: `high`→`medium`→`info`), clicar num signal **destaca** os nós envolvidos no grafo; botão “Gerar análise com IA” → `AnalysisPanel` (polling do job, selo §9.8, “Ver dados usados”).
 
 **Estados obrigatórios:** sem fontes conectadas → CTA “Conectar GitHub/Trello”; sem sync ainda → CTA “Sincronizar”; janela sem dados → `EmptyState`; `truncated=true` → aviso “mostrando os N nós mais conectados — refine os filtros”; erro de API → mensagem + “Tentar de novo”.
 
 **Desempenho:** alvo ≤ 400 nós / 1.500 arestas fluidos. Acima disso o servidor agrega (§11). Desativar rótulos abaixo de certo zoom (`min-zoomed-font-size`).
+
+### 12.5.1 Direção visual e animações do grafo — “Constelação viva” `[NOVO]`
+
+**Conceito.** O grafo é um céu noturno: pessoas são estrelas com halo, colaboração é luz que flui entre elas e risco pulsa como alerta. Mantém a identidade e os tokens existentes (D-20; §12.1): cores só dos tokens de `index.css` e da paleta de 10 cores de §12.5, **sem cor nova**. Sem imagens remotas nem avatares externos (D-11). Em conflito com o bloco “Estilo” de §12.5, **esta seção prevalece**; o que não for citado aqui continua como em §12.5. Toda propriedade e método Cytoscape citados abaixo devem ser conferidos em js.cytoscape.org (§19) antes de codar (`[VERIFICAR]`).
+
+**Níveis de efeito (`fxLevel`: `full` · `lite` · `off`):**
+
+| Nível | Quando | O que roda |
+|---|---|---|
+| `full` | padrão se nós ≤ 150 | tudo desta seção |
+| `lite` | automático se 150 < nós ≤ 400; ou escolha do usuário | só estilo estático + hover + câmera; sem pulso, fluxo, gradiente de aresta nem entrada em cascata (fade simples de 250 ms) |
+| `off` | **forçado** com `prefers-reduced-motion: reduce`; ou escolha do usuário | estilo estático, nenhuma animação (nem `layout.animate`) |
+
+O usuário só pode **rebaixar** o nível, nunca superar o que a regra automática ou o `prefers-reduced-motion` impõe. Ler com `window.matchMedia('(prefers-reduced-motion: reduce)')` e escutar o evento `change`.
+
+**A. Visual estático (`graphStyle.ts`):**
+
+| Elemento | Regra | Propriedades Cytoscape |
+|---|---|---|
+| Nó pessoa | Círculo com borda na cor da comunidade e **iniciais** dentro; nome completo como rótulo abaixo | `border-width: 3`, `border-color`, `background-color` (cor da comunidade), `background-opacity: .85`, `background-image: data(avatar)`, `background-fit: contain`, `label: data(name)`, `text-valign: bottom`, `text-margin-y: 6`, `min-zoomed-font-size` |
+| Iniciais | `Graph/avatar.ts` gera um SVG em *data URI* só com as iniciais do nome (escapar caracteres; **nunca** e-mail, login ou URL) | `data.avatar` |
+| Halo | Brilho suave na cor do nó | `underlay-color`, `underlay-opacity: .22`, `underlay-padding: 8`, `underlay-shape: ellipse` |
+| Nó em risco | Borda tracejada (já existe) **+** halo na cor de alerta. Risco nunca depende só da cor | `border-style: dashed`, `underlay-color` (alerta) |
+| Aresta | Curva suave, com gradiente da cor de origem para a de destino e opacidade proporcional ao peso | `curve-style: bezier`, `control-point-step-size: 40`, `line-fill: linear-gradient`, `line-gradient-stop-colors: <cor origem> <cor destino>`, `line-gradient-stop-positions: 0% 100%`, `opacity: mapData(weight, minW, maxW, .25, .8)`; seta só nas dirigidas (`target-arrow-shape: triangle`, `arrow-scale: .8`). Fallback sem gradiente: `line-color` |
+| Fundo | CSS no container do canvas: gradiente radial + grade de pontos sutil. No evento `pan`, deslocar `background-position` em fração do `cy.pan()` (paralaxe). O canvas do Cytoscape precisa estar transparente | CSS Module do `GraphCanvas` |
+
+**B. Animações (todas respeitam `fxLevel`):**
+
+| # | Nome | Gatilho | Comportamento | API |
+|---|---|---|---|---|
+| 1 | Nascimento das estrelas | 1º carregamento; troca de janela ou camada | Nós vão de `opacity:0` e tamanho 0 ao valor final em 450 ms, com atraso escalonado por ordem de grau decrescente (≈ 25 ms cada; teto total 800 ms). Arestas surgem depois dos seus dois nós (300 ms). Layout `fcose` com `animate:true`, 600 ms | `ele.animate({style:{…}}, {duration, easing:'ease-out-cubic'})`, `layout.animate` |
+| 2 | Atualização suave | refetch com dados novos | Nós que ficam animam posição e tamanho (400 ms); novos entram como em 1; removidos fazem fade-out de 250 ms e só então saem (`complete: () => ele.remove()`) | `ele.animate`, `cy.batch` |
+| 3 | Constelação no hover | `mouseover`/`mouseout` em nó | Nó ganha `hovered` e cresce 12% (150 ms); vizinhos ganham `neighbor`; o resto ganha `faded` (`opacity .12`, transição de 200 ms) | `cy.on('mouseover','node')`, `node.closedNeighborhood()` |
+| 4 | Respiração do risco | nós com flag de risco | Halo oscila: `underlay-opacity` .22↔.5 e `underlay-padding` 8↔14, ciclo de 1,8 s, em *loop* encadeado (`complete` chama o próximo passo). **No máximo 12 nós** pulsando (os de maior severidade) | `ele.animate` + `complete`; parar com `ele.stop(true)` |
+| 5 | Onda de seleção | clique em nó | Classe `selected` (borda 4 px) e **uma** onda: `underlay-padding` 8→28 e `underlay-opacity` .5→0 em 700 ms | `ele.animate` |
+| 6 | Fluxo de colaboração | nó selecionado | Arestas incidentes ganham `flow`: `line-style: dashed`, `line-dash-pattern: [6, 8]` e `line-dash-offset` decrescente, mostrando a direção origem→destino. Um único `requestAnimationFrame` global atualiza no máximo 40 arestas `flow`, a cada 2º quadro | `edges('.flow').style('line-dash-offset', v)` dentro de `cy.batch` |
+| 7 | Câmera por signal | clique em signal | Envolvidos ganham `signal-high\|medium\|info` (halo na cor da severidade); o resto `faded`; câmera: `cy.animate({fit:{eles, padding:80}, duration:600, easing:'ease-in-out-cubic'})`. Limpar → mesma animação com `cy.elements()` e `padding:48` | `cy.animate` |
+| 8 | Pulso viajante | resposta de `/graph/path` | Arestas do caminho ganham `path` (largura +2). Para cada salto *i*, após *i*×350 ms, cria um nó temporário `spark` (círculo de 10 px, sem eventos, `z-index` alto) no nó de origem e o anima até o destino em 350 ms; remove no `complete`. Repete o percurso a cada 2 s, no máximo 3 vezes. `spark` **nunca** vai ao PNG nem às estatísticas: remover antes de `cy.png` | `cy.add`, `ele.animate({position})`, `ele.remove()` |
+| 9 | Farol de busca | digitar na busca | O nó encontrado recebe `search-hit` + onda (item 5) e a câmera centraliza: `cy.animate({center:{eles:no}, zoom: Math.max(cy.zoom(), 1.2), duration:500})` | `cy.animate` |
+| 10 | Brilho de comunidade | só `full` e ≤ 60 nós | `underlay-opacity` de cada comunidade oscila .15↔.25 em ciclos de 4 s defasados entre comunidades. **Nenhum nó muda de posição** de forma ambiente | `ele.animate` |
+
+**C. Classes Cytoscape fixas (não inventar outras):** `faded`, `hovered`, `neighbor`, `selected`, `flow`, `path`, `spark`, `risk`, `search-hit`, `signal-high`, `signal-medium`, `signal-info`, `hidden-by-weight` (§12.4.1).
+
+**D. Orçamento e ciclo de vida (MUST):**
+1. Um único controlador `Graph/fx.ts` (`createFxController(cy)` com `start`, `stop`, `setLevel`) é dono de todos os loops e do único `requestAnimationFrame`. `GraphCanvas.tsx` apenas liga eventos a ele.
+2. Tudo para em: *unmount* (junto de `cy.destroy()`), `document.visibilityState === 'hidden'`, `fxLevel='off'` e `prefers-reduced-motion`.
+3. Nenhuma animação bloqueia interação. Ao trocar de dados, selecionar ou entrar no Modo foco, encerrar a fila pendente (`cy.stop()`).
+4. Nada pisca mais de 3 vezes por segundo (WCAG 2.3.1). Efeito nunca é o único portador de informação: legenda, borda tracejada e Detalhes continuam dizendo o mesmo.
+5. Não recriar o `cy` por causa de efeito; não duplicar canvas (§12.5, StrictMode).
+
+**NÃO FAZER:** instalar biblioteca de animação, partículas ou 3D (GSAP, anime.js, framer-motion, three.js etc.) nem extensões do Cytoscape além de `cytoscape-fcose`; usar renderer WebGL; mover nós por efeito ambiente; ultrapassar os limites numéricos acima; usar imagem ou avatar remoto; criar cor, token ou classe fora da lista; calcular métrica para decorar o efeito (tamanho e cor seguem §12.5); chamar LLM para estilo.
+
+**Critérios de aceite (F4.6):** (a) com o seed demo e `full`, a entrada em cascata roda uma vez ao carregar e ao trocar a janela; (b) Felipe e `api/payments` (risco) têm borda tracejada, halo de alerta e pulso; (c) hover escurece os não vizinhos em 200 ms; (d) clicar num nó mostra a onda e o fluxo nas arestas incidentes, e limpar a seleção interrompe o `requestAnimationFrame`; (e) clicar num signal anima a câmera até os envolvidos; (f) o caminho mais curto mostra o pulso viajante e o PNG exportado não contém `spark`; (g) com `prefers-reduced-motion`, nenhuma animação roda e o grafo continua legível; (h) com a aba oculta, a CPU cai a zero de animação; (i) com 300 nós o nível vira `lite` sozinho; (j) `npm run lint && npm run build` passam e não há dependência nova.
 
 ### 12.6 Outras telas
 
@@ -1049,6 +1171,8 @@ Legenda de dependência: `→` precisa estar concluído antes.
 | F4.2 | `GraphCanvas` + estilo + layouts + hover/seleção + painel de detalhes (§12.5) | demo seed renderiza fluido; sem canvas duplicado em StrictMode |
 | F4.3 | Toolbar: janela, tamanho/cor por métrica (provisório: `degree`), busca, peso mínimo, exportar PNG, caminho mais curto | todas as opções funcionam; `prefers-reduced-motion` respeitado |
 | F4.4 | Chips Todos/Pessoas/Atividades/Artefatos ligados a `layer`; estados vazio/erro/truncado | cada chip muda o grafo; estados visíveis |
+| F4.5 | Layout full tela do grafo (§12.4.1): `GraphShell`, `GraphTopBar`, `LeftDock`, `RightDock`, `DockState`, modo foco, atalhos, responsivo | critérios de aceite (a)–(i) de §12.4.1 |
+| F4.6 | Direção visual e animações “Constelação viva” (§12.5.1): `graphStyle.ts`, `Graph/fx.ts`, `Graph/avatar.ts`, níveis de efeito | critérios de aceite (a)–(j) de §12.5.1 |
 
 ### F5 — Motor de métricas (L) → F4 (pode começar em paralelo após F3 com o seed)
 

@@ -7,6 +7,7 @@ Rodar:
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, HTTPException, Response
@@ -14,25 +15,42 @@ from fastapi.middleware.cors import CORSMiddleware
 from neo4j import Driver
 from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from .auth_router import get_current_user_id, router as auth_router
 from .config import app_config
 from .database import create_neo4j_driver, get_neo4j_driver
+from .db import repository
+from .db.models import User
+from .db.session import create_database, get_db_session
 from .github_collector import collect_repo, fetch_user_repos
 from .neo4j_writer import Neo4jWriter
 from .trello_collector import collect_board, fetch_user_boards
-from .user_store import UserStore
+from .trello_tokens import (
+    TrelloReconnectRequired,
+    TrelloTokenRefreshError,
+    refresh_if_needed,
+)
+from .projects_router import router as projects_router
+from .graph_router import router as graph_router
+from .project_sync import mark_interrupted_sync_runs
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    create_database()
+    mark_interrupted_sync_runs()
     driver = create_neo4j_driver()
     app.state.neo4j_driver = driver
+    app.state.sync_executor = ThreadPoolExecutor(
+        max_workers=2, thread_name_prefix="cognis-sync"
+    )
     try:
         yield
     finally:
+        app.state.sync_executor.shutdown(wait=True)
         driver.close()
 
 
@@ -40,13 +58,15 @@ app = FastAPI(title="COGNIS API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[app_config.frontend_url],
+    allow_origins=app_config.allowed_frontend_origins,
     allow_credentials=True,  # obrigatório pra cookie httpOnly ir/voltar entre front e back
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(auth_router)
+app.include_router(projects_router)
+app.include_router(graph_router)
 
 
 @app.middleware("http")
@@ -64,13 +84,11 @@ async def validate_request_origin(request: Request, call_next):
 def _matches_frontend_origin(value: str) -> bool:
     try:
         request_url = urlsplit(value)
-        frontend_url = urlsplit(app_config.frontend_url)
-        return (
-            request_url.scheme.lower(),
-            request_url.netloc.lower(),
-        ) == (
-            frontend_url.scheme.lower(),
-            frontend_url.netloc.lower(),
+        request_origin = (request_url.scheme.lower(), request_url.netloc.lower())
+        return any(
+            request_origin
+            == (frontend.scheme.lower(), frontend.netloc.lower())
+            for frontend in map(urlsplit, app_config.allowed_frontend_origins)
         )
     except ValueError:
         return False
@@ -92,23 +110,27 @@ def health(
 @app.get("/auth/me")
 def me(
     user_id: str = Depends(get_current_user_id),
-    driver: Driver = Depends(get_neo4j_driver),
+    db_session: Session = Depends(get_db_session),
 ):
-    with UserStore(driver) as store:
-        connections = store.get_connections(user_id)
-    return {"user_id": user_id, "connections": connections}
+    user = db_session.get(User, user_id)
+    return {
+        "user_id": user_id,
+        "email": user.email if user else None,
+        "name": user.name if user else None,
+        "connections": repository.get_connections(db_session, user_id),
+    }
 
 
 @app.delete("/auth/{provider}")
 def disconnect(
     provider: str,
     user_id: str = Depends(get_current_user_id),
-    driver: Driver = Depends(get_neo4j_driver),
+    db_session: Session = Depends(get_db_session),
 ):
     if provider not in ("github", "trello"):
         raise HTTPException(404, "provider desconhecido")
-    with UserStore(driver) as store:
-        store.disconnect_provider(user_id, provider)
+    repository.disconnect_provider(db_session, user_id, provider)
+    db_session.commit()
     return {"ok": True}
 
 
@@ -117,10 +139,9 @@ def disconnect(
 @app.get("/github/repos")
 def list_github_repos(
     user_id: str = Depends(get_current_user_id),
-    driver: Driver = Depends(get_neo4j_driver),
+    db_session: Session = Depends(get_db_session),
 ):
-    with UserStore(driver) as store:
-        token = store.get_provider_token(user_id, "github")
+    token = repository.get_provider_token(db_session, user_id, "github")
     if not token:
         raise HTTPException(400, "GitHub não conectado")
     return fetch_user_repos(token)
@@ -129,10 +150,16 @@ def list_github_repos(
 @app.get("/trello/boards")
 def list_trello_boards(
     user_id: str = Depends(get_current_user_id),
-    driver: Driver = Depends(get_neo4j_driver),
+    db_session: Session = Depends(get_db_session),
 ):
-    with UserStore(driver) as store:
-        token = store.get_provider_token(user_id, "trello")
+    try:
+        token = refresh_if_needed(db_session, user_id)
+    except TrelloReconnectRequired:
+        raise HTTPException(401, "Trello precisa ser conectado novamente") from None
+    except TrelloTokenRefreshError:
+        raise HTTPException(
+            502, "Não foi possível renovar a conexão com o Trello"
+        ) from None
     if not token:
         raise HTTPException(400, "Trello não conectado")
     return fetch_user_boards(token)
@@ -150,10 +177,21 @@ def sync(
     body: SyncIn,
     user_id: str = Depends(get_current_user_id),
     driver: Driver = Depends(get_neo4j_driver),
+    db_session: Session = Depends(get_db_session),
 ):
-    with UserStore(driver) as store:
-        github_token = store.get_provider_token(user_id, "github")
-        trello_token = store.get_provider_token(user_id, "trello")
+    github_token = repository.get_provider_token(db_session, user_id, "github")
+    trello_token = None
+    if body.trello_boards:
+        try:
+            trello_token = refresh_if_needed(db_session, user_id)
+        except TrelloReconnectRequired:
+            raise HTTPException(
+                401, "Trello precisa ser conectado novamente"
+            ) from None
+        except TrelloTokenRefreshError:
+            raise HTTPException(
+                502, "Não foi possível renovar a conexão com o Trello"
+            ) from None
 
     if body.github_repos and not github_token:
         raise HTTPException(400, "GitHub não conectado")

@@ -5,35 +5,37 @@ GitHub:  fluxo OAuth2 clássico, tudo server-side.
   GET  /auth/github/login      -> redireciona pro GitHub
   GET  /auth/github/callback   -> GitHub chama aqui de volta com ?code=
 
-Trello:  o Trello não faz esse "code exchange" — ele devolve o token
-direto pro navegador, no fragmento da URL (#token=...). Por isso:
+Trello: fluxo OAuth2 com PKCE e troca do código no backend.
   GET  /auth/trello/authorize-url  -> devolve a URL que o FRONTEND deve abrir
 
 Sessão: um JWT em cookie httpOnly (não fica acessível via JS, então
 não some por causa de disparo de XSS bobo).
 
-As dependências get_current_user_id / get_optional_user_id são
-importadas e usadas no main.py (rotas /auth/me e DELETE /auth/{provider}
-vivem lá, porque precisam do Depends).
+Os fluxos de conexão OAuth exigem uma sessão autenticada.
 """
 from __future__ import annotations
 
 import base64
+import datetime as dt
 import hashlib
+import hmac
 import secrets
 from urllib.parse import urlencode
 
 import requests
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
-from neo4j import Driver
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from .config import app_config, auth_config, github_oauth, trello_oauth
-from .database import get_neo4j_driver
+from .db import repository
+from .db.models import User
+from .db.session import get_db_session
 from .github_collector import get_authenticated_username as get_github_username
 from .security import create_session_jwt, decode_session_jwt, hash_password, verify_password
 from .trello_collector import get_authenticated_member as get_trello_member
-from .user_store import UserStore
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -53,33 +55,43 @@ class LoginIn(BaseModel):
 def register(
     body: RegisterIn,
     response: Response,
-    driver: Driver = Depends(get_neo4j_driver),
+    db_session: Session = Depends(get_db_session),
 ):
     email = body.email.strip().lower()
     if "@" not in email or len(body.password) < 8:
         raise HTTPException(400, "Informe um email válido e uma senha com pelo menos 8 caracteres")
-    with UserStore(driver) as store:
-        store.ensure_constraints()
-        if store.get_local_user(email):
-            raise HTTPException(409, "Este email já está cadastrado")
-        user_id = store.create_local_user(email, hash_password(body.password), body.name)
-    _set_session_cookie(response, user_id)
-    return {"user_id": user_id, "email": email, "name": body.name}
+    if body.name is not None and len(body.name) > 80:
+        raise HTTPException(400, "O nome deve ter no máximo 80 caracteres")
+    user = db_session.scalar(select(User).where(User.email == email))
+    if user is not None:
+        raise HTTPException(409, "Este email já está cadastrado")
+    user = User(email=email, password_hash=hash_password(body.password), name=body.name)
+    db_session.add(user)
+    try:
+        db_session.commit()
+    except IntegrityError:
+        db_session.rollback()
+        raise HTTPException(409, "Este email já está cadastrado") from None
+    _set_session_cookie(response, user.id)
+    return {"user_id": user.id, "email": email, "name": user.name}
 
 
 @router.post("/login")
 def login(
     body: LoginIn,
     response: Response,
-    driver: Driver = Depends(get_neo4j_driver),
+    db_session: Session = Depends(get_db_session),
 ):
     email = body.email.strip().lower()
-    with UserStore(driver) as store:
-        user = store.get_local_user(email)
-    if not user or not verify_password(body.password, user["password_hash"]):
+    user = db_session.scalar(select(User).where(User.email == email))
+    if (
+        user is None
+        or user.password_hash is None
+        or not verify_password(body.password, user.password_hash)
+    ):
         raise HTTPException(401, "Email ou senha inválidos")
-    _set_session_cookie(response, user["id"])
-    return {"user_id": user["id"], "email": user["email"], "name": user.get("name")}
+    _set_session_cookie(response, user.id)
+    return {"user_id": user.id, "email": user.email, "name": user.name}
 
 
 def _set_session_cookie(response: Response, user_id: str) -> None:
@@ -91,12 +103,15 @@ def _set_session_cookie(response: Response, user_id: str) -> None:
     )
 
 
-def get_current_user_id(cognis_session: str | None = Cookie(default=None)) -> str:
+def get_current_user_id(
+    cognis_session: str | None = Cookie(default=None),
+    db_session: Session = Depends(get_db_session),
+) -> str:
     """Dependency do FastAPI — usa em qualquer rota que exige login."""
     if not cognis_session:
         raise HTTPException(401, "Não autenticado")
     user_id = decode_session_jwt(cognis_session)
-    if not user_id:
+    if not user_id or db_session.get(User, user_id) is None:
         raise HTTPException(401, "Sessão inválida ou expirada")
     return user_id
 
@@ -107,14 +122,30 @@ def get_optional_user_id(cognis_session: str | None = Cookie(default=None)) -> s
     return decode_session_jwt(cognis_session)
 
 
+def _oauth_user_binding(user_id: str, state: str) -> str:
+    message = f"{user_id}:{state}".encode()
+    return hmac.new(auth_config.jwt_secret.encode(), message, hashlib.sha256).hexdigest()
+
+
 # ---------------- GitHub ----------------
 
 @router.get("/github/login")
-def github_login(response: Response):
+def github_login(
+    response: Response,
+    user_id: str = Depends(get_current_user_id),
+):
     state = secrets.token_urlsafe(24)
     response.set_cookie(
         key=auth_config.oauth_state_cookie_name, value=state, httponly=True,
         secure=auth_config.cookie_secure, samesite="lax", max_age=600,
+    )
+    response.set_cookie(
+        key="cognis_oauth_user",
+        value=_oauth_user_binding(user_id, state),
+        httponly=True,
+        secure=auth_config.cookie_secure,
+        samesite="lax",
+        max_age=600,
     )
     params = {
         'client_id': github_oauth.client_id,
@@ -129,9 +160,17 @@ def github_login(response: Response):
 @router.get("/github/callback")
 def github_callback(code: str, state: str, response: Response,
                      cognis_oauth_state: str | None = Cookie(default=None),
-                     cognis_session: str | None = Cookie(default=None),
-                     driver: Driver = Depends(get_neo4j_driver)):
-    if not cognis_oauth_state or state != cognis_oauth_state:
+                     cognis_oauth_user: str | None = Cookie(default=None),
+                     user_id: str = Depends(get_current_user_id),
+                     db_session: Session = Depends(get_db_session)):
+    if (
+        not cognis_oauth_state
+        or state != cognis_oauth_state
+        or not cognis_oauth_user
+        or not hmac.compare_digest(
+            cognis_oauth_user, _oauth_user_binding(user_id, state)
+        )
+    ):
         raise HTTPException(400, "state inválido (possível CSRF) — tente conectar de novo")
 
     token_resp = requests.post(
@@ -153,13 +192,18 @@ def github_callback(code: str, state: str, response: Response,
 
     username = get_github_username(access_token)
 
-    existing_user_id = decode_session_jwt(cognis_session) if cognis_session else None
-    with UserStore(driver) as store:
-        user_id = store.get_or_create_user(existing_user_id)
-        store.link_provider_account(user_id=user_id, provider="github", username=username, raw_token=access_token)
+    repository.save_provider_connection(
+        db_session,
+        user_id=user_id,
+        provider="github",
+        external_login=username,
+        access_token=access_token,
+        scope=github_oauth.scope,
+    )
+    db_session.commit()
 
-    _set_session_cookie(response, user_id)
     response.delete_cookie(auth_config.oauth_state_cookie_name)
+    response.delete_cookie("cognis_oauth_user")
     # devolve o navegador pro frontend (ex: uma tela de configurações com ?connected=github)
     response.status_code = 302
     response.headers["Location"] = f"{app_config.frontend_url}/settings?connected=github"
@@ -174,7 +218,10 @@ def _pkce_challenge(verifier: str) -> str:
 
 
 @router.get("/trello/authorize-url")
-def trello_authorize_url(response: Response):
+def trello_authorize_url(
+    response: Response,
+    user_id: str = Depends(get_current_user_id),
+):
     if not trello_oauth.client_id:
         raise HTTPException(500, "TRELLO_CLIENT_ID não configurado no .env")
 
@@ -185,6 +232,14 @@ def trello_authorize_url(response: Response):
                         secure=auth_config.cookie_secure, samesite="lax", max_age=600)
     response.set_cookie("trello_oauth_state", state, httponly=True,
                         secure=auth_config.cookie_secure, samesite="lax", max_age=600)
+    response.set_cookie(
+        "trello_oauth_user",
+        value=_oauth_user_binding(user_id, state),
+        httponly=True,
+        secure=auth_config.cookie_secure,
+        samesite="lax",
+        max_age=600,
+    )
     params = {
         "client_id": trello_oauth.client_id,
         "scope": trello_oauth.scope,
@@ -200,12 +255,20 @@ def trello_authorize_url(response: Response):
 @router.get("/trello/exchange")
 def trello_exchange(code: str, state: str, response: Response,
                     trello_oauth_state: str | None = Cookie(default=None),
+                    trello_oauth_user: str | None = Cookie(default=None),
                     trello_pkce_verifier: str | None = Cookie(default=None),
-                    cognis_session: str | None = Cookie(default=None),
-                    driver: Driver = Depends(get_neo4j_driver)):
+                    user_id: str = Depends(get_current_user_id),
+                    db_session: Session = Depends(get_db_session)):
     if not trello_oauth.client_id or not trello_oauth.client_secret:
         raise HTTPException(500, "TRELLO_CLIENT_ID e TRELLO_CLIENT_SECRET devem estar configurados no .env")
-    if not trello_oauth_state or state != trello_oauth_state:
+    if (
+        not trello_oauth_state
+        or state != trello_oauth_state
+        or not trello_oauth_user
+        or not hmac.compare_digest(
+            trello_oauth_user, _oauth_user_binding(user_id, state)
+        )
+    ):
         raise HTTPException(400, "state inválido — inicie a conexão novamente")
     if not trello_pkce_verifier:
         raise HTTPException(400, "PKCE ausente — inicie a conexão novamente")
@@ -224,21 +287,38 @@ def trello_exchange(code: str, state: str, response: Response,
     )
     if not token_resp.ok:
         raise HTTPException(token_resp.status_code, "Trello recusou o código de autorização")
-    access_token = token_resp.json().get("access_token")
-    if not access_token:
-        raise HTTPException(400, "Trello não retornou access_token")
+    payload = token_resp.json()
+    access_token = payload.get("access_token") if isinstance(payload, dict) else None
+    refresh_token = payload.get("refresh_token") if isinstance(payload, dict) else None
+    expires_in = payload.get("expires_in") if isinstance(payload, dict) else None
+    if (
+        not isinstance(access_token, str)
+        or not access_token
+        or not isinstance(refresh_token, str)
+        or not refresh_token
+        or isinstance(expires_in, bool)
+        or not isinstance(expires_in, int)
+        or expires_in <= 0
+    ):
+        raise HTTPException(502, "Trello não retornou credenciais válidas")
 
     member = get_trello_member(access_token)
-    existing_user_id = decode_session_jwt(cognis_session) if cognis_session else None
-    with UserStore(driver) as store:
-        user_id = store.get_or_create_user(existing_user_id)
-        store.link_provider_account(
-            user_id=user_id, provider="trello", username=member["username"],
-            raw_token=access_token, name=member.get("fullName"), avatar_url=member.get("avatarUrl"),
-        )
+    repository.save_provider_connection(
+        db_session,
+        user_id=user_id,
+        provider="trello",
+        external_login=member["username"],
+        access_token=access_token,
+        display_name=member.get("fullName"),
+        avatar_url=member.get("avatarUrl"),
+        scope=payload.get("scope", trello_oauth.scope),
+        refresh_token=refresh_token,
+        expires_at=dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=expires_in),
+    )
+    db_session.commit()
 
-    _set_session_cookie(response, user_id)
     response.delete_cookie("trello_oauth_state")
+    response.delete_cookie("trello_oauth_user")
     response.delete_cookie("trello_pkce_verifier")
     return {"connected": "trello", "username": member["username"]}
 

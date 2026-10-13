@@ -3,12 +3,17 @@
 }
 
 .mainContentContainer{
-    border: 1px solid;
+    border: 1px solid #1f3d5b;
+    background: rgba(15, 23, 42, 0.85);
+    border-radius: 12px;
+    padding: 20px;
+    color: #e5e7eb;
 }
 
 .filterContainer{
     display: flex;
     gap: 20px;
+    margin-bottom: 16px;
 }
 
 .filterContainer div{
@@ -24,4 +29,26 @@
 .filterContainer div:hover{
     transform: translateY(-2px);
     opacity: 1;
+}
+
+.projectList {
+    display: grid;
+    gap: 12px;
+}
+
+.projectCard {
+    border: 1px solid #334155;
+    border-radius: 10px;
+    background: #111827;
+    padding: 14px 16px;
+}
+
+.projectCard strong {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.projectCard p {
+    margin: 0;
+    color: #cbd5e1;
 }

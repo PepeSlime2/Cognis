@@ -38,7 +38,7 @@ class TrelloOAuthConfig:
     client_secret: str = os.getenv("TRELLO_CLIENT_SECRET", "")
     scope: str = os.getenv(
         "TRELLO_OAUTH_SCOPE",
-        "read:member:trello read:board:trello write:board:trello offline_access",
+        "read:member:trello read:board:trello offline_access",
     )
     authorize_url: str = "https://auth.atlassian.com/authorize"
     token_url: str = "https://auth.atlassian.com/oauth/token"
@@ -59,7 +59,16 @@ class AuthConfig:
 
 @dataclass(frozen=True)
 class AppConfig:
+    environment: str = os.getenv("ENV", "production")
     frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    database_url: str = os.getenv("DATABASE_URL", "sqlite:///./cognis.db")
+
+    @property
+    def allowed_frontend_origins(self) -> list[str]:
+        origins = [self.frontend_url]
+        if self.environment == "dev" and "http://localhost:5173" not in origins:
+            origins.append("http://localhost:5173")
+        return origins
 
 
 neo4j_config = Neo4jConfig()

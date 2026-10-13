@@ -7,16 +7,17 @@ import type { ProviderConnection } from "../../api/client";
 type HomeProps = {
     onLogout: () => void | Promise<void>
     connections: Record<string, ProviderConnection>
+    projectId?: string
 }
 
-const Home = ({ onLogout, connections }: HomeProps) =>{
+const Home = ({ onLogout, connections, projectId }: HomeProps) =>{
     return(
         <div className={styles.homeContainer}>
             <div className={styles.topSideBarContainer}>
-                <TopSidebar onLogout={onLogout} connections={connections} />
+                <TopSidebar onLogout={onLogout} connections={connections} projectId={projectId} />
             </div>
             <div className={styles.mainContentContainer}> 
-                <MainContent />
+                <MainContent projectId={projectId} />
             </div>
         </div>
     )
