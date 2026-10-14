@@ -1123,118 +1123,118 @@ Legenda de dependência: `→` precisa estar concluído antes.
 
 ### F0 — Higiene e fundação (S–M) · antes de qualquer feature
 
-| Tarefa | Descrição | Aceite |
-|---|---|---|
-| F0.1 | Rotacionar segredos (§13.1-1), `git init` + commit inicial **sem** `.env`/`.venv`/`dist` | `git ls-files` não lista `.env`; app sobe com os novos segredos |
-| F0.2 | Criar `AGENTS.md`, `docs/{SPEC,decisions,open-questions}.md`, `docker-compose.yml` com volume; atualizar README (sem `run_sync.py`) | `docker compose up -d` sobe o Neo4j; README coerente |
-| F0.3 | Refatorar para `backend/app/…` (mecânico) + `pytest.ini` + smoke test | Antes/depois: `/auth/register,login,me` funcionam; `uvicorn app.main:app` |
-| F0.4 | Driver Neo4j **singleton** no `lifespan` (fechar no shutdown); `GET /health` | Um driver por processo; `/health` mostra `neo4j` |
-| F0.5 | Remover `run_sync.py` e `POST /auth/trello/token`; `urlencode` no `github_login`; remover payload cru dos erros; middleware de `Origin` (§13.1-4) | testes: POST com `Origin` errado → 403 |
-| F0.6 | Frontend: instalar `react-router-dom` e `@tanstack/react-query`; criar `api/client.ts`; migrar `fetch` soltos; mover callback do Trello para página/rota | Login, `/me`, conexão Trello funcionam como antes via `client.ts` |
+| Tarefa | Descrição | Aceite | Status |
+|---|---|---|---|
+| F0.1 | Rotacionar segredos (§13.1-1), `git init` + commit inicial **sem** `.env`/`.venv`/`dist` | `git ls-files` não lista `.env`; app sobe com os novos segredos | feito |
+| F0.2 | Criar `AGENTS.md`, `docs/{SPEC,decisions,open-questions}.md`, `docker-compose.yml` com volume; atualizar README (sem `run_sync.py`) | `docker compose up -d` sobe o Neo4j; README coerente | feito |
+| F0.3 | Refatorar para `backend/app/…` (mecânico) + `pytest.ini` + smoke test | Antes/depois: `/auth/register,login,me` funcionam; `uvicorn app.main:app` | feito |
+| F0.4 | Driver Neo4j **singleton** no `lifespan` (fechar no shutdown); `GET /health` | Um driver por processo; `/health` mostra `neo4j` | feito |
+| F0.5 | Remover `run_sync.py` e `POST /auth/trello/token`; `urlencode` no `github_login`; remover payload cru dos erros; middleware de `Origin` (§13.1-4) | testes: POST com `Origin` errado → 403 | feito |
+| F0.6 | Frontend: instalar `react-router-dom` e `@tanstack/react-query`; criar `api/client.ts`; migrar `fetch` soltos; mover callback do Trello para página/rota | Login, `/me`, conexão Trello funcionam como antes via `client.ts` | feito |
 
 ### F1 — Estado da aplicação (SQLite), Projetos e conexões (M–L) → F0
 
-| Tarefa | Descrição | Aceite |
-|---|---|---|
-| F1.1 | `db/models.py` (§4.1), `create_all`; migrar auth para SQLite; apagar `user_store.py` | registro/login/sessão usam SQLite; nenhum nó `:User` é criado |
-| F1.2 | `provider_connections` com tokens cifrados, `refresh_token_enc`, `expires_at`, `status`; conectar provider **exige sessão** | testes: conectar sem sessão → 401; token nunca aparece em resposta/log |
-| F1.3 | Trello: guardar `refresh_token`; `refresh_if_needed` com persistência atômica; `invalid_grant` → `needs_reconnect`; trocar escopo (remover `write`) `[VERIFICAR escopos]` | teste com mock: token expirado é renovado antes da chamada; falha marca `needs_reconnect` |
-| F1.4 | CRUD de projetos + `get_project_for_user` + `PUT sources` (usa `/github/repos` e `/trello/boards`) | **teste de isolamento**: usuário B recebe 404 em tudo do A |
-| F1.5 | UI: página Projetos, seletor na sidebar, botão **Conectar GitHub** real, rota `/settings`, tela “Fontes” para escolher repos/boards | fluxo ponta a ponta: criar projeto → escolher fontes (dados reais) |
+| Tarefa | Descrição | Aceite | Status |
+|---|---|---|---|
+| F1.1 | `db/models.py` (§4.1), `create_all`; migrar auth para SQLite; apagar `user_store.py` | registro/login/sessão usam SQLite; nenhum nó `:User` é criado | feito |
+| F1.2 | `provider_connections` com tokens cifrados, `refresh_token_enc`, `expires_at`, `status`; conectar provider **exige sessão** | testes: conectar sem sessão → 401; token nunca aparece em resposta/log | feito |
+| F1.3 | Trello: guardar `refresh_token`; `refresh_if_needed` com persistência atômica; `invalid_grant` → `needs_reconnect`; trocar escopo (remover `write`) `[VERIFICAR escopos]` | teste com mock: token expirado é renovado antes da chamada; falha marca `needs_reconnect` | feito |
+| F1.4 | CRUD de projetos + `get_project_for_user` + `PUT sources` (usa `/github/repos` e `/trello/boards`) | **teste de isolamento**: usuário B recebe 404 em tudo do A | feito |
+| F1.5 | UI: página Projetos, seletor na sidebar, botão **Conectar GitHub** real, rota `/settings`, tela “Fontes” para escolher repos/boards | fluxo ponta a ponta: criar projeto → escolher fontes (dados reais) | feito |
 
 ### F2 — Novo grafo e ingestão v2 (L) → F1
 
-| Tarefa | Descrição | Aceite |
-|---|---|---|
-| F2.1 | `scripts/capture_fixtures.py` (§5.0) e fixtures redigidas | arquivos em `tests/fixtures/{github,trello}`; sem tokens/e-mails |
-| F2.2 | `db/schema.cypher.py` (§4.2) + writer em lote (`UNWIND`, `execute_write`), datas nativas | constraints criadas idempotentemente; teste de idempotência (rodar 2× não duplica) |
-| F2.3 | GitHub v2 (§5.2): incremental, detalhes de commit/PR, reviews como nós, comentários repo-wide, bots, `author=null`, parsing de referências | testes de contrato com fixtures; contagens batem com o GitHub numa amostra de 1 repo |
-| F2.4 | Trello v2 (§5.3): colunas + mapeamento auto, due, ações → `transitions_json`, comentários, labels, anexos | testes de `done_at/started_at` com fixtures; **sem** datas inventadas |
-| F2.5 | `ingest/ratelimit.py` + `runner.py` + `sync_runs` + `POST /sync` assíncrono + progresso | 409 se já rodando; run interrompido vira `failed`; 2ª sync é incremental (menos requests) |
-| F2.6 | Scheduler `asyncio` (§5.4) e `PUT settings` (`auto_sync`, intervalo) | com intervalo curto de teste, dispara sozinho e atualiza `next_sync_at` |
-| F2.7 | UI: sync real na sidebar (agora/intervalo/progresso/erros) + tela “Colunas” para confirmar mapeamento | progresso aparece em tempo real; mapeamento editável persiste |
+| Tarefa | Descrição | Aceite | Status |
+|---|---|---|---|
+| F2.1 | `scripts/capture_fixtures.py` (§5.0) e fixtures redigidas | arquivos em `tests/fixtures/{github,trello}`; sem tokens/e-mails | feito |
+| F2.2 | `db/schema.cypher.py` (§4.2) + writer em lote (`UNWIND`, `execute_write`), datas nativas | constraints criadas idempotentemente; teste de idempotência (rodar 2× não duplica) | feito |
+| F2.3 | GitHub v2 (§5.2): incremental, detalhes de commit/PR, reviews como nós, comentários repo-wide, bots, `author=null`, parsing de referências | testes de contrato com fixtures; contagens batem com o GitHub numa amostra de 1 repo | feito |
+| F2.4 | Trello v2 (§5.3): colunas + mapeamento auto, due, ações → `transitions_json`, comentários, labels, anexos | testes de `done_at/started_at` com fixtures; **sem** datas inventadas | em andamento |
+| F2.5 | `ingest/ratelimit.py` + `runner.py` + `sync_runs` + `POST /sync` assíncrono + progresso | 409 se já rodando; run interrompido vira `failed`; 2ª sync é incremental (menos requests) | em andamento |
+| F2.6 | Scheduler `asyncio` (§5.4) e `PUT settings` (`auto_sync`, intervalo) | com intervalo curto de teste, dispara sozinho e atualiza `next_sync_at` | em andamento |
+| F2.7 | UI: sync real na sidebar (agora/intervalo/progresso/erros) + tela “Colunas” para confirmar mapeamento | progresso aparece em tempo real; mapeamento editável persiste | em andamento |
 
 ### F3 — Identidade e vínculos (M) → F2
 
-| Tarefa | Descrição | Aceite |
-|---|---|---|
-| F3.1 | `Person`/`Account`, criação automática 1:1, bots excluídos, `person_overrides` | cada `Account` tem `Person`; bots não aparecem por padrão |
-| F3.2 | Endpoints merge/split + sugestões (§6.1) | merge move contas e remove `Person` vazia; split desfaz |
-| F3.3 | `linker.py`: anexos Trello↔GitHub, `shortLink` em texto, `FECHA` com cross-repo; endpoints de vínculo manual | teste com fixtures cria `RELACIONADA_A` com `via` correto |
-| F3.4 | UI Pessoas (merge/rename/excluir) e Vínculos | mesclar duas contas atualiza o grafo na hora |
+| Tarefa | Descrição | Aceite | Status |
+|---|---|---|---|
+| F3.1 | `Person`/`Account`, criação automática 1:1, bots excluídos, `person_overrides` | cada `Account` tem `Person`; bots não aparecem por padrão | feito |
+| F3.2 | Endpoints merge/split + sugestões (§6.1) | merge move contas e remove `Person` vazia; split desfaz | feito |
+| F3.3 | `linker.py`: anexos Trello↔GitHub, `shortLink` em texto, `FECHA` com cross-repo; endpoints de vínculo manual | teste com fixtures cria `RELACIONADA_A` com `via` correto | feito |
+| F3.4 | UI Pessoas (merge/rename/excluir) e Vínculos | mesclar duas contas atualiza o grafo na hora | pendente |
 
 ### F4 — API do grafo e visualização (L) → F3
 
-| Tarefa | Descrição | Aceite |
-|---|---|---|
-| F4.1 | `graph/facts.py` (Cypher → dataclasses, por janela) e `graph/api.py` (`GET /graph`, `/graph/path`) respeitando `layer`, `max_nodes`, `include_bots` | resposta no formato §11; sempre filtrada por `project_id`; teste de isolamento |
-| F4.2 | `GraphCanvas` + estilo + layouts + hover/seleção + painel de detalhes (§12.5) | demo seed renderiza fluido; sem canvas duplicado em StrictMode |
-| F4.3 | Toolbar: janela, tamanho/cor por métrica (provisório: `degree`), busca, peso mínimo, exportar PNG, caminho mais curto | todas as opções funcionam; `prefers-reduced-motion` respeitado |
-| F4.4 | Chips Todos/Pessoas/Atividades/Artefatos ligados a `layer`; estados vazio/erro/truncado | cada chip muda o grafo; estados visíveis |
-| F4.5 | Layout full tela do grafo (§12.4.1): `GraphShell`, `GraphTopBar`, `LeftDock`, `RightDock`, `DockState`, modo foco, atalhos, responsivo | critérios de aceite (a)–(i) de §12.4.1 |
-| F4.6 | Direção visual e animações “Constelação viva” (§12.5.1): `graphStyle.ts`, `Graph/fx.ts`, `Graph/avatar.ts`, níveis de efeito | critérios de aceite (a)–(j) de §12.5.1 |
+| Tarefa | Descrição | Aceite | Status |
+|---|---|---|---|
+| F4.1 | `graph/facts.py` (Cypher → dataclasses, por janela) e `graph/api.py` (`GET /graph`, `/graph/path`) respeitando `layer`, `max_nodes`, `include_bots` | resposta no formato §11; sempre filtrada por `project_id`; teste de isolamento | feito |
+| F4.2 | `GraphCanvas` + estilo + layouts + hover/seleção + painel de detalhes (§12.5) | demo seed renderiza fluido; sem canvas duplicado em StrictMode | feito |
+| F4.3 | Toolbar: janela, tamanho/cor por métrica (provisório: `degree`), busca, peso mínimo, exportar PNG, caminho mais curto | todas as opções funcionam; `prefers-reduced-motion` respeitado | feito |
+| F4.4 | Chips Todos/Pessoas/Atividades/Artefatos ligados a `layer`; estados vazio/erro/truncado | cada chip muda o grafo; estados visíveis | feito |
+| F4.5 | Layout full tela do grafo (§12.4.1): `GraphShell`, `GraphTopBar`, `LeftDock`, `RightDock`, `DockState`, modo foco, atalhos, responsivo | critérios de aceite (a)–(i) de §12.4.1 | feito |
+| F4.6 | Direção visual e animações “Constelação viva” (§12.5.1): `graphStyle.ts`, `Graph/fx.ts`, `Graph/avatar.ts`, níveis de efeito | critérios de aceite (a)–(j) de §12.5.1 | pendente |
 
 ### F5 — Motor de métricas (L) → F4 (pode começar em paralelo após F3 com o seed)
 
-| Tarefa | Descrição | Aceite |
-|---|---|---|
-| F5.1 | `seed_demo.py` (§15.2) e `windows.py` (fuso, sprints) | seed cria o projeto demo; testes de janela em UTC/BRT |
-| F5.2 | `collab_graph.py` (§7.3) + `graph_metrics.py` (A) | unit tests com grafos pequenos conhecidos (valores esperados escritos à mão) |
-| F5.3 | `person_metrics.py` (B) | casos de borda: planned=0 → `null`, equipe sem atividade, pesos renormalizados |
-| F5.4 | `team_metrics.py` (C) incl. bus factor por módulo, Gini, isolamento, pontes, `review_coverage` | seed: `api/payments` tem `bus_factor=1`; Felipe é isolado |
-| F5.5 | `flow_metrics.py` (D): R1/R2, lead/cycle, atraso, rework, tempo até 1º review, WIP, gargalo, dependências | testes com cronologias fabricadas; `insufficient_data` quando falta dado |
-| F5.6 | `registry.py` + `GET /metrics/catalog` + `service.get_bundle` + snapshots (§7.5) + settings (pesos/limiares) | 2ª chamada vem do cache; mudar peso muda `config_hash` |
-| F5.7 | UI: Métricas, Pessoas (índices), tooltips do catálogo; tamanho/cor do grafo por métrica real | grafo reage à métrica escolhida |
-| F5.8 | Sprints CRUD + `WindowPicker` com sprints | janela por sprint funciona em grafo e métricas |
+| Tarefa | Descrição | Aceite | Status |
+|---|---|---|---|
+| F5.1 | `seed_demo.py` (§15.2) e `windows.py` (fuso, sprints) | seed cria o projeto demo; testes de janela em UTC/BRT | pendente |
+| F5.2 | `collab_graph.py` (§7.3) + `graph_metrics.py` (A) | unit tests com grafos pequenos conhecidos (valores esperados escritos à mão) | pendente |
+| F5.3 | `person_metrics.py` (B) | casos de borda: planned=0 → `null`, equipe sem atividade, pesos renormalizados | pendente |
+| F5.4 | `team_metrics.py` (C) incl. bus factor por módulo, Gini, isolamento, pontes, `review_coverage` | seed: `api/payments` tem `bus_factor=1`; Felipe é isolado | pendente |
+| F5.5 | `flow_metrics.py` (D): R1/R2, lead/cycle, atraso, rework, tempo até 1º review, WIP, gargalo, dependências | testes com cronologias fabricadas; `insufficient_data` quando falta dado | pendente |
+| F5.6 | `registry.py` + `GET /metrics/catalog` + `service.get_bundle` + snapshots (§7.5) + settings (pesos/limiares) | 2ª chamada vem do cache; mudar peso muda `config_hash` | pendente |
+| F5.7 | UI: Métricas, Pessoas (índices), tooltips do catálogo; tamanho/cor do grafo por métrica real | grafo reage à métrica escolhida | pendente |
+| F5.8 | Sprints CRUD + `WindowPicker` com sprints | janela por sprint funciona em grafo e métricas | pendente |
 
 ### F6 — Signals e painel de Insights (M) → F5
 
-| Tarefa | Descrição | Aceite |
-|---|---|---|
-| F6.1 | `signals.py` (§8) + templates PT-BR + `GET /signals` | o seed dispara exatamente os signals plantados (e nenhum espúrio) |
-| F6.2 | `SignalsPanel`: lista por severidade, destaque no grafo, avisos de dados insuficientes | clicar num signal destaca os nós envolvidos |
+| Tarefa | Descrição | Aceite | Status |
+|---|---|---|---|
+| F6.1 | `signals.py` (§8) + templates PT-BR + `GET /signals` | o seed dispara exatamente os signals plantados (e nenhum espúrio) | pendente |
+| F6.2 | `SignalsPanel`: lista por severidade, destaque no grafo, avisos de dados insuficientes | clicar num signal destaca os nós envolvidos | pendente |
 
 > **Marco “produto utilizável sem IA”:** F0–F6 entregam grafo + métricas + riscos por regra. Se o tempo apertar, esta é a linha de segurança do TCC.
 
 ### F7 — IA local (L) → F6
 
-| Tarefa | Descrição | Aceite |
-|---|---|---|
-| F7.1 | `client.py` (Ollama `/api/chat`, lock global, timeout) + `/health` com Ollama `[VERIFICAR format/schema]` | com Ollama ligado/desligado o `/health` reflete; erro de timeout tratado |
-| F7.2 | `facts_builder.py` (+ anonimização) e `schemas.py` | `facts` ≤ ~3k tokens; mapa de anonimização reversível só no servidor |
-| F7.3 | `validator.py` (§9.7) com testes (números/refs inventados reprovam) | 100% dos casos “maliciosos” de teste são pegos |
-| F7.4 | `pipeline.py`: seções, retry com feedback, fallback `templates.py`; tabela `analyses`; endpoints (§11) | com Ollama desligado, a análise sai por template e marca `source='template'` |
-| F7.5 | UI: `AnalysisPanel` (job, progresso, selo, “ver dados usados”, anonimizar) | texto de IA aparece com selo; números destacados batem com `facts` |
-| F7.6 | `tests/llm_eval/` (§9.9) e rodada de avaliação | planilha de resultados gerada |
+| Tarefa | Descrição | Aceite | Status |
+|---|---|---|---|
+| F7.1 | `client.py` (Ollama `/api/chat`, lock global, timeout) + `/health` com Ollama `[VERIFICAR format/schema]` | com Ollama ligado/desligado o `/health` reflete; erro de timeout tratado | pendente |
+| F7.2 | `facts_builder.py` (+ anonimização) e `schemas.py` | `facts` ≤ ~3k tokens; mapa de anonimização reversível só no servidor | pendente |
+| F7.3 | `validator.py` (§9.7) com testes (números/refs inventados reprovam) | 100% dos casos “maliciosos” de teste são pegos | pendente |
+| F7.4 | `pipeline.py`: seções, retry com feedback, fallback `templates.py`; tabela `analyses`; endpoints (§11) | com Ollama desligado, a análise sai por template e marca `source='template'` | pendente |
+| F7.5 | UI: `AnalysisPanel` (job, progresso, selo, “ver dados usados”, anonimizar) | texto de IA aparece com selo; números destacados batem com `facts` | pendente |
+| F7.6 | `tests/llm_eval/` (§9.9) e rodada de avaliação | planilha de resultados gerada | pendente |
 
 ### F8 — Relatórios (L) → F7 (HTML pode começar após F6 usando só templates)
 
-| Tarefa | Descrição | Aceite |
-|---|---|---|
-| F8.1 | `ReportModel` + `builder.py` para os 5 tipos (§10.1) | JSON válido para cada tipo com o seed |
-| F8.2 | `charts.py` (matplotlib Agg) + imagem do grafo | PNGs legíveis, cores por comunidade |
-| F8.3 | `render_html.py` (Jinja2, arquivo único) | abre offline, com gráficos |
-| F8.4 | `render_docx.py` | abre no Word sem aviso; tabelas/imagens ok |
-| F8.5 | `render_pdf.py` (ReportLab) com acentos corretos | PDF com acentos, tabelas e imagens |
-| F8.6 | Endpoints + `ReportDialog` + lista/download autenticado | usuário B não baixa relatório do A |
-| F8.7 | Relatório **Individual** com avisos de §13.4 e anonimização | aviso presente nos 3 formatos |
+| Tarefa | Descrição | Aceite | Status |
+|---|---|---|---|
+| F8.1 | `ReportModel` + `builder.py` para os 5 tipos (§10.1) | JSON válido para cada tipo com o seed | pendente |
+| F8.2 | `charts.py` (matplotlib Agg) + imagem do grafo | PNGs legíveis, cores por comunidade | pendente |
+| F8.3 | `render_html.py` (Jinja2, arquivo único) | abre offline, com gráficos | pendente |
+| F8.4 | `render_docx.py` | abre no Word sem aviso; tabelas/imagens ok | pendente |
+| F8.5 | `render_pdf.py` (ReportLab) com acentos corretos | PDF com acentos, tabelas e imagens | pendente |
+| F8.6 | Endpoints + `ReportDialog` + lista/download autenticado | usuário B não baixa relatório do A | pendente |
+| F8.7 | Relatório **Individual** com avisos de §13.4 e anonimização | aviso presente nos 3 formatos | pendente |
 
 ### F9 — Evolução temporal (M) → F5
 
-| Tarefa | Descrição | Aceite |
-|---|---|---|
-| F9.1 | `team.evolution` por sprint/14 d + `GET /metrics/evolution` + signal `COLLAB_DROP` | seed com 4 períodos mostra variação coerente |
-| F9.2 | `EvolutionChart` (SVG) + comparação lado a lado de 2 períodos (grafo) | alternar períodos anima o grafo |
+| Tarefa | Descrição | Aceite | Status |
+|---|---|---|---|
+| F9.1 | `team.evolution` por sprint/14 d + `GET /metrics/evolution` + signal `COLLAB_DROP` | seed com 4 períodos mostra variação coerente | pendente |
+| F9.2 | `EvolutionChart` (SVG) + comparação lado a lado de 2 períodos (grafo) | alternar períodos anima o grafo | pendente |
 
 ### F10 — Endurecimento e entrega (M)
 
-| Tarefa | Descrição | Aceite |
-|---|---|---|
-| F10.1 | Revisão de segurança com o checklist §13.1 + testes faltantes | todos os itens marcados com teste ou evidência |
-| F10.2 | Estados de loading/vazio/erro em todas as telas; acessibilidade básica (foco, contraste, `aria-label` nos controles do grafo) | navegação por teclado nos controles principais |
-| F10.3 | Performance: grafo com 400 nós; bundle de métricas < 2 s | medições registradas em `docs/perf.md` |
-| F10.4 | Excluir projeto (LGPD) apaga grafo + arquivos; botão na UI | contagem de nós `project_id` = 0 após excluir |
-| F10.5 | README final, vídeo/prints com o seed, `docs/` revisados | alguém novo roda o projeto só pelo README |
+| Tarefa | Descrição | Aceite | Status |
+|---|---|---|---|
+| F10.1 | Revisão de segurança com o checklist §13.1 + testes faltantes | todos os itens marcados com teste ou evidência | pendente |
+| F10.2 | Estados de loading/vazio/erro em todas as telas; acessibilidade básica (foco, contraste, `aria-label` nos controles do grafo) | navegação por teclado nos controles principais | pendente |
+| F10.3 | Performance: grafo com 400 nós; bundle de métricas < 2 s | medições registradas em `docs/perf.md` | pendente |
+| F10.4 | Excluir projeto (LGPD) apaga grafo + arquivos; botão na UI | contagem de nós `project_id` = 0 após excluir | pendente |
+| F10.5 | README final, vídeo/prints com o seed, `docs/` revisados | alguém novo roda o projeto só pelo README | pendente |
 
 ### F11 — Opcional / diferencial acadêmico
 
