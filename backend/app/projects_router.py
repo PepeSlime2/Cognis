@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import timedelta
+from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -9,7 +11,14 @@ from sqlalchemy.orm import Session
 
 from .auth_router import get_current_user_id
 from .db import repository
-from .db.models import Project, ProjectSource, ProviderConnection, SyncRun
+from .db.models import (
+    ColumnMapping,
+    Project,
+    ProjectSource,
+    ProviderConnection,
+    SyncRun,
+    utc_now,
+)
 from .db.session import get_db_session
 from .github_collector import fetch_user_repos
 from .trello_collector import fetch_user_boards
@@ -22,6 +31,29 @@ from .project_sync import schedule_project_sync, sync_run_payload
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 SYNC_INTERVALS = {15, 30, 60, 360, 1440}
+ALLOWED_COLUMN_CATEGORIES = {"todo", "doing", "review", "done", "backlog"}
+
+
+class ColumnMappingUpdateItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    column_uid: str
+    category: str
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, value: str) -> str:
+        if value not in ALLOWED_COLUMN_CATEGORIES:
+            raise ValueError(
+                f"Categoria inválida. Deve ser uma de: {', '.join(sorted(ALLOWED_COLUMN_CATEGORIES))}"
+            )
+        return value
+
+
+class UpdateColumnsIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    columns: list[ColumnMappingUpdateItem]
 
 
 class ProjectIn(BaseModel):
@@ -58,6 +90,34 @@ class ProjectIn(BaseModel):
         return value
 
 
+class ProjectSettingsIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    auto_sync: bool
+    sync_interval_min: int = 60
+    timezone: str | None = None
+    history_days: int | None = Field(default=None, ge=7, le=365)
+    settings_json: dict[str, Any] | None = None
+
+    @field_validator("sync_interval_min")
+    @classmethod
+    def validate_sync_interval(cls, value: int) -> int:
+        if value not in SYNC_INTERVALS:
+            raise ValueError("Intervalo de sincronização inválido")
+        return value
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        try:
+            ZoneInfo(value)
+        except (ValueError, ZoneInfoNotFoundError):
+            raise ValueError("Fuso horário inválido") from None
+        return value
+
+
 class ProjectSourcesIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -89,6 +149,7 @@ def _project_payload(project: Project, sources: list[ProjectSource] | None = Non
         "next_sync_at": (
             project.next_sync_at.isoformat() if project.next_sync_at else None
         ),
+        "settings_json": project.settings_json or {},
         "created_at": project.created_at.isoformat(),
     }
     if sources is not None:
@@ -124,6 +185,8 @@ def create_project(
     db_session: Session = Depends(get_db_session),
 ):
     project = Project(user_id=user_id, **body.model_dump())
+    if project.auto_sync:
+        project.next_sync_at = utc_now() + timedelta(minutes=project.sync_interval_min)
     db_session.add(project)
     db_session.commit()
     return _project_payload(project)
@@ -152,10 +215,75 @@ def update_project(
     db_session: Session = Depends(get_db_session),
 ):
     project = repository.get_project_for_user(db_session, project_id, user_id)
+    prev_auto_sync = project.auto_sync
     for field, value in body.model_dump().items():
         setattr(project, field, value)
+    if project.auto_sync:
+        if not prev_auto_sync or project.next_sync_at is None:
+            project.next_sync_at = utc_now() + timedelta(minutes=project.sync_interval_min)
+    else:
+        project.next_sync_at = None
     db_session.commit()
     return _project_payload(project)
+
+
+@router.get("/{project_id}/settings")
+def get_project_settings(
+    project_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db_session: Session = Depends(get_db_session),
+):
+    project = repository.get_project_for_user(db_session, project_id, user_id)
+    return {
+        "auto_sync": project.auto_sync,
+        "sync_interval_min": project.sync_interval_min,
+        "next_sync_at": (
+            project.next_sync_at.isoformat() if project.next_sync_at else None
+        ),
+        "timezone": project.timezone,
+        "history_days": project.history_days,
+        "settings_json": project.settings_json or {},
+    }
+
+
+@router.put("/{project_id}/settings")
+def update_project_settings(
+    project_id: str,
+    body: ProjectSettingsIn,
+    user_id: str = Depends(get_current_user_id),
+    db_session: Session = Depends(get_db_session),
+):
+    project = repository.get_project_for_user(db_session, project_id, user_id)
+    prev_auto_sync = project.auto_sync
+    prev_interval = project.sync_interval_min
+
+    project.auto_sync = body.auto_sync
+    project.sync_interval_min = body.sync_interval_min
+    if body.timezone is not None:
+        project.timezone = body.timezone
+    if body.history_days is not None:
+        project.history_days = body.history_days
+    if body.settings_json is not None:
+        project.settings_json = body.settings_json
+
+    if project.auto_sync:
+        if (
+            not prev_auto_sync
+            or project.next_sync_at is None
+            or project.next_sync_at <= utc_now()
+            or prev_interval != project.sync_interval_min
+        ):
+            project.next_sync_at = utc_now() + timedelta(minutes=project.sync_interval_min)
+    else:
+        project.next_sync_at = None
+
+    db_session.commit()
+    sources = db_session.scalars(
+        select(ProjectSource)
+        .where(ProjectSource.project_id == project.id)
+        .order_by(ProjectSource.provider, ProjectSource.external_id)
+    ).all()
+    return _project_payload(project, sources)
 
 
 @router.delete("/{project_id}", status_code=204)
@@ -220,6 +348,106 @@ def get_project_sync_run(
     if run is None:
         raise HTTPException(404, "Execução de sincronização não encontrada")
     return sync_run_payload(run)
+
+
+@router.get("/{project_id}/columns")
+def list_project_columns(
+    project_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db_session: Session = Depends(get_db_session),
+):
+    project = repository.get_project_for_user(db_session, project_id, user_id)
+    columns = db_session.scalars(
+        select(ColumnMapping)
+        .where(ColumnMapping.project_id == project.id)
+        .order_by(ColumnMapping.name, ColumnMapping.column_uid)
+    ).all()
+    warnings: list[str] = []
+    if any(col.source == "auto" for col in columns):
+        warnings.append("columns_unconfirmed")
+
+    return {
+        "columns": [
+            {
+                "column_uid": col.column_uid,
+                "name": col.name,
+                "category": col.category,
+                "source": col.source,
+            }
+            for col in columns
+        ],
+        "warnings": warnings,
+    }
+
+
+@router.put("/{project_id}/columns")
+def update_project_columns(
+    project_id: str,
+    body: UpdateColumnsIn | list[ColumnMappingUpdateItem],
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+    db_session: Session = Depends(get_db_session),
+):
+    project = repository.get_project_for_user(db_session, project_id, user_id)
+    column_items = body if isinstance(body, list) else body.columns
+
+    existing_mappings = {
+        col.column_uid: col
+        for col in db_session.scalars(
+            select(ColumnMapping).where(ColumnMapping.project_id == project.id)
+        ).all()
+    }
+
+    neo4j_updates: list[dict[str, str]] = []
+    for item in column_items:
+        mapping = existing_mappings.get(item.column_uid)
+        if mapping:
+            mapping.category = item.category
+            mapping.source = "user"
+            neo4j_updates.append({"column_uid": item.column_uid, "category": item.category})
+        else:
+            raise HTTPException(404, f"Coluna com ID '{item.column_uid}' não encontrada.")
+
+    db_session.commit()
+
+    # Atualiza nós :Column no Neo4j caso disponíveis
+    driver = getattr(request.app.state, "neo4j_driver", None)
+    if driver and neo4j_updates:
+        try:
+            with driver.session() as n4j_session:
+                n4j_session.run(
+                    """
+                    UNWIND $updates AS upd
+                    MATCH (c:Column {project_id: $project_id, uid: upd.column_uid})
+                    SET c.category = upd.category
+                    """,
+                    project_id=project.id,
+                    updates=neo4j_updates,
+                )
+        except Exception:
+            pass
+
+    columns = db_session.scalars(
+        select(ColumnMapping)
+        .where(ColumnMapping.project_id == project.id)
+        .order_by(ColumnMapping.name, ColumnMapping.column_uid)
+    ).all()
+    warnings: list[str] = []
+    if any(col.source == "auto" for col in columns):
+        warnings.append("columns_unconfirmed")
+
+    return {
+        "columns": [
+            {
+                "column_uid": col.column_uid,
+                "name": col.name,
+                "category": col.category,
+                "source": col.source,
+            }
+            for col in columns
+        ],
+        "warnings": warnings,
+    }
 
 
 def _available_sources(

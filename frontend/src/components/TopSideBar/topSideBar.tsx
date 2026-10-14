@@ -89,7 +89,27 @@ const TopSideBar = ({ onLogout, connections, projectId }: TopSideBarProps) => {
               />
               <div className={styles.serviceSync}>
                 <p className={styles.serviceObs}>Coleta Automática</p>
-                <p className={styles.serviceInterval}>A cada 1 hora</p>
+                <p className={styles.serviceInterval}>
+                  {(() => {
+                    const activeProject = projectsQuery.data?.find((p) => p.id === projectId)
+                    if (!activeProject) return 'Selecione um projeto'
+                    if (!activeProject.auto_sync) return 'Manual (Desativada)'
+                    switch (activeProject.sync_interval_min) {
+                      case 15:
+                        return 'A cada 15 min'
+                      case 30:
+                        return 'A cada 30 min'
+                      case 60:
+                        return 'A cada 1 hora'
+                      case 360:
+                        return 'A cada 6 horas'
+                      case 1440:
+                        return 'A cada 24 horas'
+                      default:
+                        return `A cada ${activeProject.sync_interval_min} min`
+                    }
+                  })()}
+                </p>
               </div>
             </div>
           </div>

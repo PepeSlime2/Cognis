@@ -7,8 +7,10 @@ import {
   faFileLines,
   faGear,
   faChevronRight,
+  faTableColumns,
+  faClock,
 } from '@fortawesome/free-solid-svg-icons'
-import type { ProviderConnection } from '../../api/client'
+import type { ProviderConnection, SyncRun } from '../../api/client'
 import iconTrello from '../../assets/trelloicon.png'
 import iconGitHub from '../../assets/github-white-icon.webp'
 import styles from './leftDock.module.css'
@@ -22,7 +24,16 @@ type LeftDockProps = {
   onSync: () => void
   syncInProgress: boolean
   lastRunStatus?: { status: string; message?: string; done?: number; total?: number }
-  hasGithubSource: boolean
+  syncRun?: SyncRun | null
+  hasActiveSource?: boolean
+  hasGithubSource?: boolean
+  autoSync?: boolean
+  syncIntervalMin?: number
+  nextSyncAt?: string | null
+  onUpdateSyncInterval?: (autoSync: boolean, intervalMin: number) => void
+  hasTrelloSource?: boolean
+  hasUnconfirmedColumns?: boolean
+  onOpenColumnsModal?: () => void
 }
 
 const LeftDock = ({
@@ -34,16 +45,25 @@ const LeftDock = ({
   onSync,
   syncInProgress,
   lastRunStatus,
-  hasGithubSource,
+  syncRun,
+  hasActiveSource: hasActiveSourceProp,
+  hasGithubSource = false,
+  autoSync = false,
+  syncIntervalMin = 60,
+  nextSyncAt,
+  onUpdateSyncInterval,
+  hasTrelloSource = false,
+  hasUnconfirmedColumns = false,
+  onOpenColumnsModal,
 }: LeftDockProps) => {
   const navigate = useNavigate()
+  const hasActiveSource = hasActiveSourceProp ?? hasGithubSource
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     sources: true,
     sync: true,
     reports: false,
     settings: false,
   })
-  const [syncInterval, setSyncInterval] = useState('1h')
   const [reportFeedback, setReportFeedback] = useState<string | null>(null)
 
   const toggleSection = (section: string) => {
@@ -221,45 +241,126 @@ const LeftDock = ({
                 <select
                   id="sync-interval"
                   className={styles.selectInput}
-                  value={syncInterval}
-                  onChange={(e) => setSyncInterval(e.target.value)}
+                  value={!autoSync ? 'manual' : String(syncIntervalMin)}
+                  onChange={(e) => {
+                    if (onUpdateSyncInterval) {
+                      const val = e.target.value
+                      if (val === 'manual') {
+                        onUpdateSyncInterval(false, syncIntervalMin || 60)
+                      } else {
+                        onUpdateSyncInterval(true, Number(val))
+                      }
+                    }
+                  }}
                 >
-                  <option value="manual">Manual</option>
-                  <option value="15m">A cada 15 min</option>
-                  <option value="30m">A cada 30 min</option>
-                  <option value="1h">A cada 1 hora</option>
-                  <option value="6h">A cada 6 horas</option>
-                  <option value="24h">A cada 24 horas</option>
+                  <option value="manual">Manual (Desativado)</option>
+                  <option value="15">A cada 15 min</option>
+                  <option value="30">A cada 30 min</option>
+                  <option value="60">A cada 1 hora (padrão)</option>
+                  <option value="360">A cada 6 horas</option>
+                  <option value="1440">A cada 24 horas</option>
                 </select>
+                {autoSync && nextSyncAt && (
+                  <span className={styles.nextSyncInfo}>
+                    <FontAwesomeIcon icon={faClock} />
+                    Próxima: {(() => {
+                      try {
+                        return new Intl.DateTimeFormat('pt-BR', {
+                          timeZone: 'America/Sao_Paulo',
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }).format(new Date(nextSyncAt))
+                      } catch {
+                        return 'Programada'
+                      }
+                    })()}
+                  </span>
+                )}
               </div>
 
               <button
                 type="button"
                 className={styles.syncBtn}
                 onClick={onSync}
-                disabled={!hasGithubSource || syncInProgress}
+                disabled={!hasActiveSource || syncInProgress}
+                title={!hasActiveSource ? 'Conecte fontes para sincronizar' : 'Iniciar coleta'}
               >
-                <FontAwesomeIcon icon={faRotateRight} />
+                <FontAwesomeIcon icon={faRotateRight} spin={syncInProgress} />
                 <span>{syncInProgress ? 'Sincronizando…' : 'Sincronizar agora'}</span>
               </button>
 
-              {lastRunStatus && (
+              {(syncRun || lastRunStatus) && (
                 <div className={styles.runStatusCard} role="status">
-                  <strong>Status: {lastRunStatus.status}</strong>
-                  <span>{lastRunStatus.message}</span>
-                  {lastRunStatus.total !== undefined && lastRunStatus.total > 0 && (
-                    <div className={styles.progressBarContainer}>
-                      <div
-                        className={styles.progressBarFill}
-                        style={{
-                          width: `${Math.round(
-                            ((lastRunStatus.done ?? 0) / lastRunStatus.total) * 100,
-                          )}%`,
-                        }}
-                      />
+                  <div className={styles.runHeaderRow}>
+                    <strong style={{ fontSize: '11px', color: '#ffffff' }}>Coleta</strong>
+                    {(() => {
+                      const st = syncRun?.status || lastRunStatus?.status
+                      switch (st) {
+                        case 'queued':
+                          return <span className={`${styles.statusBadge} ${styles.statusBadgeQueued}`}>Em fila</span>
+                        case 'running':
+                          return <span className={`${styles.statusBadge} ${styles.statusBadgeRunning}`}>Sincronizando</span>
+                        case 'success':
+                          return <span className={`${styles.statusBadge} ${styles.statusBadgeSuccess}`}>Sucesso</span>
+                        case 'partial':
+                          return <span className={`${styles.statusBadge} ${styles.statusBadgePartial}`}>Parcial</span>
+                        case 'failed':
+                          return <span className={`${styles.statusBadge} ${styles.statusBadgeFailed}`}>Falha</span>
+                        case 'paused_rate_limit':
+                          return <span className={`${styles.statusBadge} ${styles.statusBadgePausedRateLimit}`}>Rate Limit</span>
+                        default:
+                          return st ? <span className={styles.statusBadge}>{st}</span> : null
+                      }
+                    })()}
+                  </div>
+
+                  <span className={styles.runMessage}>
+                    {syncRun?.progress?.message || lastRunStatus?.message || 'Processando dados...'}
+                  </span>
+
+                  {(() => {
+                    const done = syncRun?.progress?.done ?? lastRunStatus?.done ?? 0
+                    const total = syncRun?.progress?.total ?? lastRunStatus?.total ?? 0
+                    if (total > 0) {
+                      const pct = Math.min(100, Math.round((done / total) * 100))
+                      return (
+                        <div className={styles.progressBarContainer}>
+                          <div
+                            className={styles.progressBarFill}
+                            style={{ width: `${pct}%` }}
+                            title={`${pct}% concluído (${done}/${total})`}
+                          />
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
+
+                  {syncRun?.errors && syncRun.errors.length > 0 && (
+                    <div className={styles.errorList} role="alert">
+                      {syncRun.errors.map((err, idx) => (
+                        <div key={idx} className={styles.errorItem}>
+                          • {err.message || err.code}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
+              )}
+
+              {(hasTrelloSource || onOpenColumnsModal) && onOpenColumnsModal && (
+                <button
+                  type="button"
+                  className={styles.columnsBtn}
+                  onClick={onOpenColumnsModal}
+                  title="Configurar mapeamento de colunas do Trello"
+                >
+                  <FontAwesomeIcon icon={faTableColumns} />
+                  <span>Mapear Colunas</span>
+                  {hasUnconfirmedColumns && <span className={styles.unconfirmedDot} title="Colunas pendentes de confirmação" />}
+                </button>
               )}
             </div>
           )}

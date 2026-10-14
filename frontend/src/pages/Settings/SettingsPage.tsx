@@ -9,6 +9,8 @@ import {
   sessionQueryKey,
   type ProjectSummary,
   type SessionResponse,
+  type ColumnCategory,
+  type ColumnMappingsResponse,
 } from '../../api/client'
 
 type ProjectSource = {
@@ -72,6 +74,12 @@ function SettingsPage() {
     queryFn: () => api.get<TrelloBoard[]>('/trello/boards'),
     enabled: Boolean(selectedProjectId && sessionQuery.data?.connections.trello),
   })
+  const columnsQuery = useQuery({
+    queryKey: ['projectColumns', selectedProjectId],
+    queryFn: () => api.get<ColumnMappingsResponse>(`/projects/${selectedProjectId}/columns`),
+    enabled: Boolean(selectedProjectId),
+  })
+  const [selectedColCategories, setSelectedColCategories] = useState<Record<string, ColumnCategory>>({})
 
   if (sessionQuery.isPending) {
     return <main className={styles.page}><p>Carregando configurações...</p></main>
@@ -390,6 +398,153 @@ function SettingsPage() {
               </div>
             </>
           )}
+        </section>
+      )}
+
+      {selectedProjectId && projectQuery.data && (
+        <section className={styles.panel}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2>Sincronização e Coleta</h2>
+              <p className={styles.helper}>Configure a frequência de sincronização em segundo plano.</p>
+            </div>
+          </div>
+          <div className={styles.syncSettingsRow}>
+            <label htmlFor="settings-sync-interval" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              Intervalo Automático:
+            </label>
+            <select
+              id="settings-sync-interval"
+              className={styles.categorySelect}
+              value={!projectQuery.data.auto_sync ? 'manual' : String(projectQuery.data.sync_interval_min)}
+              onChange={async (e) => {
+                const val = e.target.value
+                setError('')
+                setSuccess('')
+                try {
+                  if (val === 'manual') {
+                    await api.put(`/projects/${selectedProjectId}/settings`, {
+                      auto_sync: false,
+                      sync_interval_min: projectQuery.data.sync_interval_min || 60,
+                    })
+                  } else {
+                    await api.put(`/projects/${selectedProjectId}/settings`, {
+                      auto_sync: true,
+                      sync_interval_min: Number(val),
+                    })
+                  }
+                  setSuccess('Configuração de sincronização salva!')
+                  await queryClient.invalidateQueries({ queryKey: ['project', selectedProjectId] })
+                  await queryClient.invalidateQueries({ queryKey: projectsQueryKey })
+                } catch (err: unknown) {
+                  setError(err instanceof Error ? err.message : 'Erro ao salvar intervalo.')
+                }
+              }}
+            >
+              <option value="manual">Manual (Desativada)</option>
+              <option value="15">A cada 15 min</option>
+              <option value="30">A cada 30 min</option>
+              <option value="60">A cada 1 hora</option>
+              <option value="360">A cada 6 horas</option>
+              <option value="1440">A cada 24 horas</option>
+            </select>
+            {projectQuery.data.auto_sync && projectQuery.data.next_sync_at && (
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Próxima sync prevista: {(() => {
+                  try {
+                    return new Intl.DateTimeFormat('pt-BR', {
+                      timeZone: 'America/Sao_Paulo',
+                      day: '2-digit',
+                      month: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }).format(new Date(projectQuery.data.next_sync_at))
+                  } catch {
+                    return 'Programada'
+                  }
+                })()}
+              </span>
+            )}
+          </div>
+        </section>
+      )}
+
+      {selectedProjectId && columnsQuery.data && columnsQuery.data.columns.length > 0 && (
+        <section className={styles.panel}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2>Mapeamento de Colunas (Trello)</h2>
+              <p className={styles.helper}>
+                Classifique as colunas para alimentar métricas de fluxo e tempo de ciclo determinísticos.
+              </p>
+            </div>
+            {columnsQuery.data.warnings.includes('columns_unconfirmed') && (
+              <span className={styles.counter} style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fde68a', borderColor: 'rgba(245, 158, 11, 0.3)' }}>
+                Confirmação pendente
+              </span>
+            )}
+          </div>
+
+          {columnsQuery.data.warnings.includes('columns_unconfirmed') && (
+            <div className={styles.warningBanner} role="alert">
+              <span>⚠️ Existem colunas com classificação automática pendente de confirmação.</span>
+            </div>
+          )}
+
+          <div className={styles.columnsGrid}>
+            {columnsQuery.data.columns.map((col) => {
+              const currentCat = selectedColCategories[col.column_uid] || col.category
+              return (
+                <div key={col.column_uid} className={styles.columnCard}>
+                  <div className={styles.columnCardHeader}>
+                    <span className={styles.columnCardTitle} title={col.name}>{col.name}</span>
+                    <span className={col.source === 'auto' ? styles.badgeAuto : styles.badgeUser}>
+                      {col.source === 'auto' ? 'Automático' : 'Confirmado'}
+                    </span>
+                  </div>
+                  <select
+                    className={styles.categorySelect}
+                    value={currentCat}
+                    onChange={(e) => {
+                      const newCat = e.target.value as ColumnCategory
+                      setSelectedColCategories((prev) => ({ ...prev, [col.column_uid]: newCat }))
+                    }}
+                    aria-label={`Categoria da coluna ${col.name}`}
+                  >
+                    <option value="backlog">Backlog</option>
+                    <option value="todo">A Fazer (Todo)</option>
+                    <option value="doing">Em Andamento (Doing)</option>
+                    <option value="review">Revisão / QA (Review)</option>
+                    <option value="done">Concluído (Done)</option>
+                  </select>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className={styles.saveRow}>
+            <button
+              className={styles.primaryButton}
+              type="button"
+              onClick={async () => {
+                setError('')
+                setSuccess('')
+                try {
+                  const updates = columnsQuery.data.columns.map((col) => ({
+                    column_uid: col.column_uid,
+                    category: selectedColCategories[col.column_uid] || col.category,
+                  }))
+                  await api.put(`/projects/${selectedProjectId}/columns`, { columns: updates })
+                  setSuccess('Mapeamento de colunas atualizado e confirmado com sucesso!')
+                  await queryClient.invalidateQueries({ queryKey: ['projectColumns', selectedProjectId] })
+                } catch (err: unknown) {
+                  setError(err instanceof Error ? err.message : 'Erro ao salvar colunas.')
+                }
+              }}
+            >
+              Salvar Mapeamento de Colunas
+            </button>
+          </div>
         </section>
       )}
     </main>

@@ -37,6 +37,7 @@ from .projects_router import router as projects_router
 from .people_router import router as people_router
 from .links_router import router as links_router
 from .graph_router import router as graph_router
+from .ingest.scheduler import start_scheduler, stop_scheduler
 from .project_sync import mark_interrupted_sync_runs
 
 
@@ -49,9 +50,12 @@ async def lifespan(app: FastAPI):
     app.state.sync_executor = ThreadPoolExecutor(
         max_workers=2, thread_name_prefix="cognis-sync"
     )
+    scheduler_task = start_scheduler(app)
+    app.state.sync_scheduler_task = scheduler_task
     try:
         yield
     finally:
+        await stop_scheduler(scheduler_task)
         app.state.sync_executor.shutdown(wait=True)
         driver.close()
 

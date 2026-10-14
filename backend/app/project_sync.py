@@ -18,6 +18,13 @@ from .github_v2_collector import sync_github_project
 from .identity_service import sync_people_for_project
 from .linker import link_project_in_graph
 from .neo4j_v2_writer import Neo4jV2Writer
+from .ingest.ratelimit import RateLimitPaused
+from .trello_tokens import (
+    TrelloReconnectRequired,
+    TrelloTokenRefreshError,
+    refresh_if_needed,
+)
+from .trello_v2_collector import sync_trello_project
 
 ACTIVE_STATUSES = ("queued", "running")
 _active_project_ids: set[str] = set()
@@ -53,17 +60,34 @@ def schedule_project_sync(
     executor: ThreadPoolExecutor,
 ) -> SyncRun:
     project = repository.get_project_for_user(session, project_id, user_id)
-    sources = session.scalars(
+    github_sources = session.scalars(
         select(ProjectSource).where(
             ProjectSource.project_id == project.id,
             ProjectSource.provider == "github",
             ProjectSource.enabled.is_(True),
         )
     ).all()
-    if not sources:
-        raise HTTPException(400, "O projeto não possui repositórios GitHub ativos.")
-    if not repository.get_provider_token(session, user_id, "github"):
+    trello_sources = session.scalars(
+        select(ProjectSource).where(
+            ProjectSource.project_id == project.id,
+            ProjectSource.provider == "trello",
+            ProjectSource.enabled.is_(True),
+        )
+    ).all()
+    total_sources = len(github_sources) + len(trello_sources)
+    if total_sources == 0:
+        raise HTTPException(400, "O projeto não possui fontes ativas.")
+    if github_sources and not repository.get_provider_token(session, user_id, "github"):
         raise HTTPException(400, "GitHub não conectado")
+    if trello_sources:
+        try:
+            trello_token = refresh_if_needed(session, user_id)
+        except TrelloReconnectRequired:
+            raise HTTPException(401, "Trello precisa ser conectado novamente") from None
+        except TrelloTokenRefreshError:
+            raise HTTPException(502, "Não foi possível renovar a conexão com o Trello") from None
+        if not trello_token:
+            raise HTTPException(400, "Trello não conectado")
 
     with _active_projects_lock:
         active_run = session.scalar(
@@ -83,7 +107,7 @@ def schedule_project_sync(
             progress_json={
                 "stage": "queued",
                 "done": 0,
-                "total": len(sources),
+                "total": total_sources,
                 "message": "A sincronização está aguardando para iniciar.",
             },
         )
@@ -150,18 +174,48 @@ def _run_project_sync(
                 }
                 session.commit()
 
+            github_sources = session.scalars(
+                select(ProjectSource).where(
+                    ProjectSource.project_id == project_id,
+                    ProjectSource.provider == "github",
+                    ProjectSource.enabled.is_(True),
+                )
+            ).all()
+            trello_sources = session.scalars(
+                select(ProjectSource).where(
+                    ProjectSource.project_id == project_id,
+                    ProjectSource.provider == "trello",
+                    ProjectSource.enabled.is_(True),
+                )
+            ).all()
+
             ensure_graph_schema(driver)
             writer = Neo4jV2Writer(driver)
-            result = sync_github_project(
-                session,
-                user_id,
-                project_id,
-                writer,
-                progress_callback=update_progress,
-            )
+            completed: list[dict[str, Any]] = []
+            errors: list[dict[str, Any]] = []
 
-            completed = result["completed"]
-            errors = result["errors"]
+            if github_sources or (not github_sources and not trello_sources):
+                result = sync_github_project(
+                    session,
+                    user_id,
+                    project_id,
+                    writer,
+                    progress_callback=update_progress,
+                )
+                completed.extend(result.get("completed", []))
+                errors.extend(result.get("errors", []))
+
+            if trello_sources:
+                trello_result = sync_trello_project(
+                    session,
+                    user_id,
+                    project_id,
+                    writer,
+                    progress_callback=update_progress,
+                )
+                completed.extend(trello_result.get("completed", []))
+                errors.extend(trello_result.get("errors", []))
+
             if errors and completed:
                 status = "partial"
             elif errors:
@@ -173,14 +227,14 @@ def _run_project_sync(
             relationship_counts: dict[str, int] = {}
             unresolved_relationships = 0
             for source_result in completed:
-                counts = source_result["counts"]
-                for label, count in counts["nodes"].items():
+                counts = source_result.get("counts", {})
+                for label, count in counts.get("nodes", {}).items():
                     node_counts[label] = node_counts.get(label, 0) + count
-                for relation, count in counts["relationships"].items():
+                for relation, count in counts.get("relationships", {}).items():
                     relationship_counts[relation] = (
                         relationship_counts.get(relation, 0) + count
                     )
-                unresolved_relationships += counts["unresolved_relationships"]
+                unresolved_relationships += counts.get("unresolved_relationships", 0)
 
             if hasattr(driver, "session"):
                 try:
@@ -233,9 +287,12 @@ def _run_project_sync(
                 ),
             }
             repo_failed_count = sum(1 for e in errors if "source_id" in e)
+            repos_succeeded = sum(1 for s in completed if "repository" in s)
+            boards_succeeded = sum(1 for s in completed if "board" in s)
             current_run.stats_json = {
-                "repositories_succeeded": len(completed),
+                "repositories_succeeded": repos_succeeded or len(completed),
                 "repositories_failed": repo_failed_count,
+                "boards_succeeded": boards_succeeded,
                 "nodes": node_counts,
                 "relationships": relationship_counts,
                 "unresolved_relationships": unresolved_relationships,
@@ -248,6 +305,25 @@ def _run_project_sync(
                 project.next_sync_at = utc_now() + timedelta(
                     minutes=project.sync_interval_min
                 )
+            session.commit()
+    except RateLimitPaused as rl_exc:
+        with db_session.SessionLocal() as session:
+            run = session.get(SyncRun, run_id)
+            if run is not None:
+                run.status = "paused_rate_limit"
+                run.finished_at = utc_now()
+                run.errors_json = [
+                    {
+                        "code": "RateLimitPaused",
+                        "message": str(rl_exc),
+                    }
+                ]
+                run.progress_json = {
+                    "stage": "paused_rate_limit",
+                    "message": f"Sincronização pausada devido ao rate limit do GitHub até {rl_exc.reset_at.isoformat()}.",
+                }
+            project = repository.get_project_for_user(session, project_id, user_id)
+            project.next_sync_at = rl_exc.reset_at
             session.commit()
     except Exception as error:
         with db_session.SessionLocal() as session:
@@ -265,6 +341,10 @@ def _run_project_sync(
                     "stage": "done",
                     "message": "Não foi possível concluir a sincronização.",
                 }
+                project = repository.get_project_for_user(session, project_id, user_id)
+                project.next_sync_at = utc_now() + timedelta(
+                    minutes=project.sync_interval_min
+                )
                 session.commit()
     finally:
         with _active_projects_lock:

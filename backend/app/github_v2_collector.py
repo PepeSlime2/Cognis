@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from .db import repository
 from .db.models import ProjectSource, ProviderConnection
+from .ingest.ratelimit import RateLimitPaused, check_github_rate_limit
 from .neo4j_v2_writer import Neo4jV2Writer, make_uid
 
 GITHUB_API = "https://api.github.com"
@@ -132,11 +133,16 @@ def _incremental_since(
     cursor: dict[str, Any],
     key: str,
     initial_since: str,
+    overlap_minutes: int = 5,
 ) -> str:
-    value = cursor.get(key, initial_since)
-    if not isinstance(value, str) or _parse_datetime(value) is None:
+    if key not in cursor:
+        return initial_since
+    value = cursor[key]
+    parsed = _parse_datetime(value)
+    if parsed is None:
         raise ValueError(f"Cursor incremental inválido para {key}.")
-    return value
+    overlap_time = parsed - dt.timedelta(minutes=overlap_minutes)
+    return _iso_utc(overlap_time)
 
 
 def fetch_github_repo(
@@ -915,6 +921,7 @@ def sync_github_project(
     total = len(sources)
     for index, source in enumerate(sources, start=1):
         try:
+            check_github_rate_limit(token, now=now)
             settings = project.settings_json or {}
             if not isinstance(settings, dict):
                 raise ValueError("As configurações do projeto devem ser um objeto.")
@@ -936,6 +943,9 @@ def sync_github_project(
             counts = write_github_graph(project.id, nodes, relationships, writer)
             source.cursor_json = next_cursor
             session.commit()
+        except RateLimitPaused:
+            session.rollback()
+            raise
         except (
             requests.RequestException,
             Neo4jError,

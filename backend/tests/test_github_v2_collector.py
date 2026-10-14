@@ -359,7 +359,7 @@ def test_initial_and_incremental_fetch_use_independent_cursors(monkeypatch):
     )
 
     assert [pull["number"] for pull in payload["pulls"]] == [7]
-    assert calls[0][1] == {"since": "2026-10-12T12:00:00Z"}
+    assert calls[0][1] == {"since": "2026-10-12T11:55:00Z"}
     assert next_cursor == {
         key: "2026-10-14T12:00:00Z"
         for key in collector.NEXT_CURSOR_KEYS

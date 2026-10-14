@@ -12,6 +12,7 @@ import {
   type ProviderConnection,
   type SyncRun,
   type SyncStartResponse,
+  type ColumnMappingsResponse,
 } from '../../api/client'
 import type { DockState, GraphSelection, GraphViewState } from './types'
 import GraphTopBar from './GraphTopBar'
@@ -20,6 +21,7 @@ import LeftDock from './LeftDock'
 import RightDock from './RightDock'
 import GraphCanvas from './GraphCanvas'
 import GraphLegend from './GraphLegend'
+import { ColumnsModal } from '../ColumnsModal/ColumnsModal'
 import styles from './graphShell.module.css'
 
 type ProjectSource = {
@@ -127,8 +129,8 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
     queryFn: () => api.get<ProjectSummary[]>('/projects'),
   })
 
-  const hasGithubSource = Boolean(
-    projectQuery.data?.sources.some((source) => source.provider === 'github' && source.enabled),
+  const hasActiveSource = Boolean(
+    projectQuery.data?.sources.some((source) => source.enabled),
   )
 
   const graphQuery = useQuery({
@@ -142,14 +144,27 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
       })
       return api.get<ProjectGraph>(`/projects/${projectId}/graph?${params}`)
     },
-    enabled: hasGithubSource,
+    enabled: hasActiveSource,
   })
+
+  const [columnsModalOpen, setColumnsModalOpen] = useState(false)
 
   const syncMutation = useMutation({
     mutationFn: () => api.post<SyncStartResponse>(`/projects/${projectId}/sync`),
     onSuccess: async (run) => {
       setRunId(run.run_id)
       await queryClient.invalidateQueries({ queryKey: ['projectGraph', projectId] })
+      await queryClient.invalidateQueries({ queryKey: ['projectLatestRun', projectId] })
+    },
+  })
+
+  const latestRunQuery = useQuery({
+    queryKey: ['projectLatestRun', projectId],
+    queryFn: () => api.get<SyncRun[]>(`/projects/${projectId}/sync-runs?limit=1`),
+    enabled: Boolean(projectId),
+    refetchInterval: (query) => {
+      const status = query.state.data?.[0]?.status
+      return status === 'queued' || status === 'running' ? 2000 : false
     },
   })
 
@@ -163,25 +178,49 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
     },
   })
 
+  const columnsQuery = useQuery({
+    queryKey: ['projectColumns', projectId],
+    queryFn: () => api.get<ColumnMappingsResponse>(`/projects/${projectId}/columns`),
+    enabled: Boolean(
+      projectId && projectQuery.data?.sources.some((s) => s.provider === 'trello' && s.enabled),
+    ),
+  })
+  const hasUnconfirmedColumns = Boolean(
+    columnsQuery.data?.warnings?.includes('columns_unconfirmed'),
+  )
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: ({ autoSync, intervalMin }: { autoSync: boolean; intervalMin: number }) =>
+      api.put(`/projects/${projectId}/settings`, {
+        auto_sync: autoSync,
+        sync_interval_min: intervalMin,
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['project', projectId] })
+      await queryClient.invalidateQueries({ queryKey: ['projects'] })
+    },
+  })
+
   useEffect(() => {
-    const status = runQuery.data?.status
+    const status = runQuery.data?.status ?? latestRunQuery.data?.[0]?.status
     if (status && status !== 'queued' && status !== 'running') {
       void queryClient.invalidateQueries({ queryKey: ['projectGraph', projectId] })
       void queryClient.invalidateQueries({ queryKey: ['project', projectId] })
     }
-  }, [projectId, queryClient, runQuery.data?.status])
+  }, [projectId, queryClient, runQuery.data?.status, latestRunQuery.data])
 
   // Auto-sync na primeira vez
   useEffect(() => {
     autoSyncTriggeredRef.current = false
   }, [projectId])
 
-  const activeRun = runQuery.data?.status === 'queued' || runQuery.data?.status === 'running'
+  const currentSyncRun = runQuery.data ?? latestRunQuery.data?.[0] ?? null
+  const activeRun = currentSyncRun?.status === 'queued' || currentSyncRun?.status === 'running'
   const syncInProgress = syncMutation.isPending || activeRun
 
   useEffect(() => {
     if (
-      !hasGithubSource ||
+      !hasActiveSource ||
       autoSyncTriggeredRef.current ||
       syncInProgress ||
       !graphQuery.isSuccess ||
@@ -193,7 +232,7 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
 
     autoSyncTriggeredRef.current = true
     syncMutation.mutate()
-  }, [graphQuery.data?.stats.nodes, graphQuery.isFetching, graphQuery.isSuccess, hasGithubSource, syncInProgress, syncMutation])
+  }, [graphQuery.data?.stats.nodes, graphQuery.isFetching, graphQuery.isSuccess, hasActiveSource, syncInProgress, syncMutation])
 
   // Atalhos de teclado (ignorar se foco em input, textarea, select)
   useEffect(() => {
@@ -444,17 +483,19 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           onConnectTrello={() => void connectTrello()}
           onSync={() => syncMutation.mutate()}
           syncInProgress={syncInProgress}
-          lastRunStatus={
-            runQuery.data
-              ? {
-                  status: runQuery.data.status,
-                  message: runQuery.data.progress.message ?? runQuery.data.status,
-                  done: runQuery.data.progress.done,
-                  total: runQuery.data.progress.total,
-                }
-              : undefined
-          }
-          hasGithubSource={hasGithubSource}
+          syncRun={currentSyncRun}
+          hasActiveSource={hasActiveSource}
+          autoSync={projectQuery.data?.auto_sync}
+          syncIntervalMin={projectQuery.data?.sync_interval_min}
+          nextSyncAt={projectQuery.data?.next_sync_at}
+          onUpdateSyncInterval={(autoSync, intervalMin) => {
+            updateSettingsMutation.mutate({ autoSync, intervalMin })
+          }}
+          hasTrelloSource={Boolean(
+            projectQuery.data?.sources.some((s) => s.provider === 'trello' && s.enabled),
+          )}
+          hasUnconfirmedColumns={hasUnconfirmedColumns}
+          onOpenColumnsModal={() => setColumnsModalOpen(true)}
         />
       </div>
 
@@ -472,10 +513,10 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           <div className={styles.centerStateCard}>
             <p>Carregando grafo cósmico do projeto...</p>
           </div>
-        ) : !hasGithubSource ? (
+        ) : !hasActiveSource ? (
           <div className={styles.centerStateCard}>
-            <h2>Nenhum repositório conectado</h2>
-            <p>Conecte repositórios GitHub para carregar o grafo de colaboração.</p>
+            <h2>Nenhuma fonte conectada</h2>
+            <p>Conecte repositórios GitHub ou boards do Trello para carregar o grafo de colaboração.</p>
             <button
               type="button"
               className={styles.actionBtn}
@@ -539,6 +580,14 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           selection={viewState.selection}
         />
       </div>
+
+      {projectId && (
+        <ColumnsModal
+          projectId={projectId}
+          isOpen={columnsModalOpen}
+          onClose={() => setColumnsModalOpen(false)}
+        />
+      )}
     </div>
   )
 }

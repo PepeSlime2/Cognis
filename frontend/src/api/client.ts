@@ -162,3 +162,26 @@ export type SessionResponse = {
 
 export const sessionQueryKey = ['auth', 'me'] as const
 export const projectsQueryKey = ['projects'] as const
+
+export type ColumnCategory = 'todo' | 'doing' | 'review' | 'done' | 'backlog'
+
+export type ColumnMappingItem = {
+  column_uid: string
+  name: string
+  category: ColumnCategory
+  source: 'auto' | 'user'
+}
+
+export type ColumnMappingsResponse = {
+  columns: ColumnMappingItem[]
+  warnings: string[]
+}
+
+export type ProjectSettings = {
+  auto_sync: boolean
+  sync_interval_min: number
+  next_sync_at?: string | null
+  timezone: string
+  history_days: number
+  settings_json: Record<string, unknown>
+}
