@@ -70,6 +70,14 @@ export const api = {
     })
   },
 
+  patch<T>(path: string, body: unknown): Promise<T> {
+    return request<T>(path, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  },
+
   delete<T>(path: string): Promise<T> {
     return request<T>(path, { method: 'DELETE' })
   },
@@ -184,4 +192,70 @@ export type ProjectSettings = {
   timezone: string
   history_days: number
   settings_json: Record<string, unknown>
+}
+
+export type PersonAccount = {
+  uid: string
+  provider: string | null
+  login: string | null
+  display_name: string | null
+  avatar_url: string | null
+  is_bot: boolean
+  linked: boolean
+}
+
+export type Person = {
+  person_uid: string
+  display_name: string | null
+  excluded: boolean
+  is_me: boolean
+  accounts: PersonAccount[]
+}
+
+export type MergeSuggestion = {
+  person_a_uid: string
+  person_b_uid: string
+  account_a: PersonAccount | null
+  account_b: PersonAccount
+  reason: string
+  confidence: number
+}
+
+export type PeopleResponse = {
+  project_id: string
+  people: Person[]
+  suggestions: MergeSuggestion[]
+}
+
+export type ProjectLink = {
+  source_uid: string
+  source_title: string
+  source_provider: string
+  source_url: string | null
+  target_uid: string
+  target_title: string
+  target_provider: string
+  target_kind: 'pull_request' | 'issue'
+  target_url: string | null
+  via: string
+  confidence: number
+}
+
+export type LinksResponse = {
+  project_id: string
+  links: ProjectLink[]
+  unlinked_tasks: Array<{
+    uid: string
+    title: string
+    provider: string
+    url: string | null
+    short_link: string | null
+  }>
+  candidates: Array<{
+    uid: string
+    title: string
+    kind: 'pull_request' | 'issue'
+    provider: string
+    url: string | null
+  }>
 }

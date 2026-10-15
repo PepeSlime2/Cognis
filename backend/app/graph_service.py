@@ -89,6 +89,67 @@ WHERE account.project_id = $project_id
   AND module.uid IN $uids
 RETURN account.uid AS source, module.uid AS target, count(DISTINCT commit) AS weight
 """
+PERSON_MAP_QUERY = """
+MATCH (person:Person)-[:TEM_CONTA]->(account:Account)
+WHERE person.project_id = $project_id
+  AND account.project_id = $project_id
+  AND account.uid IN $uids
+RETURN account.uid AS account_uid, person.uid AS person_uid,
+       person.display_name AS display_name,
+       coalesce(person.excluded, false) AS excluded
+"""
+
+
+def collapse_accounts_into_people(
+    nodes: list[dict[str, Any]],
+    relationships: list[dict[str, Any]],
+    persons: dict[str, dict[str, Any]],
+    include_bots: bool = False,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Substitui cada Account pela sua Person (TEM_CONTA).
+
+    Contas da mesma Person viram um único nó (graus somados) com o nome da Person.
+    Pessoas com ``excluded`` são removidas, exceto bots quando ``include_bots``.
+    Contas sem Person permanecem como estão.
+    """
+    alias: dict[str, str] = {}
+    merged: dict[str, dict[str, Any]] = {}
+    result_nodes: list[dict[str, Any]] = []
+    for node in nodes:
+        props = node["properties"]
+        person = persons.get(props.get("uid")) if node["label"] == "Account" else None
+        if person is None:
+            result_nodes.append(node)
+            continue
+        is_bot = bool(props.get("is_bot", False))
+        if person["excluded"] and not (include_bots and is_bot):
+            continue
+        person_uid = person["person_uid"]
+        alias[props["uid"]] = person_uid
+        existing = merged.get(person_uid)
+        if existing is None:
+            new_props = dict(props)
+            new_props["uid"] = person_uid
+            new_props["display_name"] = (
+                person.get("display_name") or props.get("display_name") or props.get("login")
+            )
+            existing = {"label": "Account", "properties": new_props, "degree": node["degree"]}
+            merged[person_uid] = existing
+            result_nodes.append(existing)
+        else:
+            existing["degree"] += node["degree"]
+            existing["properties"]["is_bot"] = bool(
+                existing["properties"].get("is_bot", False)
+            ) and is_bot
+
+    result_relationships: list[dict[str, Any]] = []
+    for rel in relationships:
+        source = alias.get(rel["source"], rel["source"])
+        target = alias.get(rel["target"], rel["target"])
+        if source == target:
+            continue
+        result_relationships.append({**rel, "source": source, "target": target})
+    return result_nodes, result_relationships
 
 
 def build_cytoscape_elements(
@@ -343,6 +404,24 @@ def get_project_graph(
                     )
                 )
 
+        persons: dict[str, dict[str, Any]] = {}
+        if uids and "Account" in labels:
+            persons = {
+                record["account_uid"]: {
+                    "person_uid": record["person_uid"],
+                    "display_name": record["display_name"],
+                    "excluded": record["excluded"],
+                }
+                for record in session.run(
+                    PERSON_MAP_QUERY,
+                    project_id=project_id,
+                    uids=uids,
+                )
+            }
+
+    query_nodes, relationships = collapse_accounts_into_people(
+        query_nodes, relationships, persons, include_bots
+    )
     result = build_cytoscape_elements(
         query_nodes,
         relationships,

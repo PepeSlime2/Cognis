@@ -163,3 +163,43 @@ def test_every_graph_query_is_project_scoped_and_activities_are_collapsed():
         "project_id = $project_id" in query
         for query, _ in driver.graph_session.calls[2:]
     )
+
+
+def test_collapse_accounts_into_people():
+    from app.graph_service import collapse_accounts_into_people
+
+    nodes = [
+        {"label": "Account", "properties": {"uid": "acc-gh", "login": "pedro_gh", "is_bot": False}, "degree": 3},
+        {"label": "Account", "properties": {"uid": "acc-tr", "login": "pedro_tr", "is_bot": False}, "degree": 2},
+        {"label": "Account", "properties": {"uid": "acc-bot", "login": "bot-x", "is_bot": True}, "degree": 1},
+        {"label": "Task", "properties": {"uid": "task-1", "title": "Card"}, "degree": 1},
+    ]
+    relationships = [
+        {"source": "acc-gh", "target": "task-1", "relationship": "abriu", "properties": {}},
+        {"source": "acc-tr", "target": "task-1", "relationship": "responsavel", "properties": {}},
+        {"source": "acc-gh", "target": "acc-tr", "relationship": "relacionado", "properties": {}},
+    ]
+    persons = {
+        "acc-gh": {"person_uid": "person-pedro", "display_name": "Pedro", "excluded": False},
+        "acc-tr": {"person_uid": "person-pedro", "display_name": "Pedro", "excluded": False},
+        "acc-bot": {"person_uid": "person-bot", "display_name": "Bot X", "excluded": True},
+    }
+
+    collapsed_nodes, collapsed_rels = collapse_accounts_into_people(nodes, relationships, persons, include_bots=False)
+
+    node_uids = [n["properties"]["uid"] for n in collapsed_nodes]
+    assert "person-pedro" in node_uids
+    assert "acc-gh" not in node_uids
+    assert "acc-tr" not in node_uids
+    assert "person-bot" not in node_uids  # excluded and not include_bots
+    assert "task-1" in node_uids
+
+    pedro_node = next(n for n in collapsed_nodes if n["properties"]["uid"] == "person-pedro")
+    assert pedro_node["properties"]["display_name"] == "Pedro"
+    assert pedro_node["degree"] == 5
+
+    # Self-loops caused by merging two connected accounts should be eliminated
+    for r in collapsed_rels:
+        assert r["source"] != r["target"]
+    assert len([r for r in collapsed_rels if r["source"] == "person-pedro" and r["target"] == "task-1"]) == 2
+

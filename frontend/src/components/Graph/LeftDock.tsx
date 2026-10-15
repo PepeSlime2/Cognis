@@ -9,6 +9,8 @@ import {
   faChevronRight,
   faTableColumns,
   faClock,
+  faUsers,
+  faLink,
 } from '@fortawesome/free-solid-svg-icons'
 import type { ProviderConnection, SyncRun } from '../../api/client'
 import iconTrello from '../../assets/trelloicon.png'
@@ -34,6 +36,8 @@ type LeftDockProps = {
   hasTrelloSource?: boolean
   hasUnconfirmedColumns?: boolean
   onOpenColumnsModal?: () => void
+  onOpenPeopleModal?: () => void
+  onOpenLinksModal?: () => void
 }
 
 const LeftDock = ({
@@ -55,6 +59,8 @@ const LeftDock = ({
   hasTrelloSource = false,
   hasUnconfirmedColumns = false,
   onOpenColumnsModal,
+  onOpenPeopleModal,
+  onOpenLinksModal,
 }: LeftDockProps) => {
   const navigate = useNavigate()
   const hasActiveSource = hasActiveSourceProp ?? hasGithubSource
@@ -442,6 +448,18 @@ const LeftDock = ({
                 <FontAwesomeIcon icon={faGear} />
                 <span>Configurações do Projeto</span>
               </button>
+              {onOpenPeopleModal && (
+                <button type="button" className={styles.settingsNavBtn} onClick={onOpenPeopleModal}>
+                  <FontAwesomeIcon icon={faUsers} />
+                  <span>Pessoas</span>
+                </button>
+              )}
+              {onOpenLinksModal && (
+                <button type="button" className={styles.settingsNavBtn} onClick={onOpenLinksModal}>
+                  <FontAwesomeIcon icon={faLink} />
+                  <span>Vínculos Trello ↔ GitHub</span>
+                </button>
+              )}
             </div>
           )}
         </section>

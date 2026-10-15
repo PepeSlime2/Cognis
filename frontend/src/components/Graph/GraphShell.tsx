@@ -22,6 +22,8 @@ import RightDock from './RightDock'
 import GraphCanvas from './GraphCanvas'
 import GraphLegend from './GraphLegend'
 import { ColumnsModal } from '../ColumnsModal/ColumnsModal'
+import { PeopleModal } from '../Identity/PeopleModal'
+import { LinksModal } from '../Identity/LinksModal'
 import styles from './graphShell.module.css'
 
 type ProjectSource = {
@@ -148,6 +150,8 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
   })
 
   const [columnsModalOpen, setColumnsModalOpen] = useState(false)
+  const [peopleModalOpen, setPeopleModalOpen] = useState(false)
+  const [linksModalOpen, setLinksModalOpen] = useState(false)
 
   const syncMutation = useMutation({
     mutationFn: () => api.post<SyncStartResponse>(`/projects/${projectId}/sync`),
@@ -496,6 +500,8 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           )}
           hasUnconfirmedColumns={hasUnconfirmedColumns}
           onOpenColumnsModal={() => setColumnsModalOpen(true)}
+          onOpenPeopleModal={() => setPeopleModalOpen(true)}
+          onOpenLinksModal={() => setLinksModalOpen(true)}
         />
       </div>
 
@@ -586,6 +592,20 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           projectId={projectId}
           isOpen={columnsModalOpen}
           onClose={() => setColumnsModalOpen(false)}
+        />
+      )}
+      {projectId && (
+        <PeopleModal
+          projectId={projectId}
+          isOpen={peopleModalOpen}
+          onClose={() => setPeopleModalOpen(false)}
+        />
+      )}
+      {projectId && (
+        <LinksModal
+          projectId={projectId}
+          isOpen={linksModalOpen}
+          onClose={() => setLinksModalOpen(false)}
         />
       )}
     </div>

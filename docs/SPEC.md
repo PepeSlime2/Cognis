@@ -1161,7 +1161,7 @@ Legenda de dependência: `→` precisa estar concluído antes.
 | F3.1 | `Person`/`Account`, criação automática 1:1, bots excluídos, `person_overrides` | cada `Account` tem `Person`; bots não aparecem por padrão | feito |
 | F3.2 | Endpoints merge/split + sugestões (§6.1) | merge move contas e remove `Person` vazia; split desfaz | feito |
 | F3.3 | `linker.py`: anexos Trello↔GitHub, `shortLink` em texto, `FECHA` com cross-repo; endpoints de vínculo manual | teste com fixtures cria `RELACIONADA_A` com `via` correto | feito |
-| F3.4 | UI Pessoas (merge/rename/excluir) e Vínculos | mesclar duas contas atualiza o grafo na hora | pendente |
+| F3.4 | UI Pessoas (merge/rename/excluir) e Vínculos | mesclar duas contas atualiza o grafo na hora | em andamento |
 
 ### F4 — API do grafo e visualização (L) → F3
 
