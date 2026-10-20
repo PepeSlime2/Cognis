@@ -8,6 +8,8 @@ import Auth from './components/Auth/Auth'
 import Home from './pages/Home/Home'
 import SettingsPage from './pages/Settings/SettingsPage'
 import TrelloCallback from './pages/TrelloCallback/TrelloCallback'
+import { MetricsPage } from './pages/Metrics/MetricsPage'
+import { PeoplePage } from './pages/People/PeoplePage'
 
 function SessionPage() {
   const queryClient = useQueryClient()
@@ -83,6 +85,8 @@ function App() {
     <Routes>
       <Route path="/trello-callback" element={<TrelloCallback />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/p/:projectId/metrics" element={<MetricsPage />} />
+      <Route path="/p/:projectId/people" element={<PeoplePage />} />
       <Route path="/p/:projectId" element={<SessionPage />} />
       <Route path="/login" element={<SessionPage />} />
       <Route path="/" element={<SessionPage />} />

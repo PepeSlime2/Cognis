@@ -1,0 +1,227 @@
+.container {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--bg-main, #02001b);
+  color: var(--text-main, #f8fafc);
+  display: flex;
+  flex-direction: column;
+}
+
+.topBar {
+  height: 56px;
+  background-color: rgba(14, 11, 44, 0.9);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.navLink {
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.navLink:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.navLinkActive {
+  color: #c084fc;
+  background-color: rgba(139, 92, 246, 0.15);
+  font-weight: 600;
+}
+
+.windowChips {
+  display: flex;
+  gap: 6px;
+}
+
+.chipBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chipBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.chipActive {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: #8b5cf6;
+  color: #fff;
+  font-weight: 600;
+}
+
+.content {
+  flex: 1;
+  padding: 32px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.headerTitle {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.subtitle {
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 32px;
+}
+
+.categorySection {
+  margin-bottom: 36px;
+}
+
+.categoryTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.card {
+  background-color: rgba(20, 16, 56, 0.6);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.infoIcon {
+  color: #64748b;
+  cursor: help;
+  font-size: 14px;
+  transition: color 0.15s ease;
+}
+
+.infoIcon:hover {
+  color: #c084fc;
+}
+
+.cardValueContainer {
+  margin: 10px 0;
+}
+
+.cardValue {
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.cardUnit {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-left: 6px;
+  font-weight: normal;
+}
+
+.insufficientBadge {
+  display: inline-block;
+  padding: 4px 8px;
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.reasonText {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.tooltipBox {
+  position: absolute;
+  top: 40px;
+  right: 16px;
+  background-color: #0f0b29;
+  border: 1px solid #8b5cf6;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: #e2e8f0;
+  z-index: 50;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+  max-width: 280px;
+}
+
+.tooltipFormula {
+  font-family: monospace;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 4px 6px;
+  border-radius: 4px;
+  color: #c084fc;
+  margin-top: 6px;
+  display: block;
+}
+
+.footerNote {
+  margin-top: 48px;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+  font-style: italic;
+}

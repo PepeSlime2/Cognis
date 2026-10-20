@@ -12,6 +12,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import type { GraphLayer, ProjectSummary } from '../../api/client'
 import cognisLogo from '../../assets/CognisLogotipo.png'
+import { WindowPicker } from '../WindowPicker/WindowPicker'
 import styles from './graphTopBar.module.css'
 
 const layers: Array<{ id: GraphLayer; label: string }> = [
@@ -19,14 +20,6 @@ const layers: Array<{ id: GraphLayer; label: string }> = [
   { id: 'people', label: 'Pessoas' },
   { id: 'tasks', label: 'Atividades' },
   { id: 'artifacts', label: 'Artefatos' },
-]
-
-const windows = [
-  { id: '7d', label: '7d' },
-  { id: '14d', label: '14d' },
-  { id: '30d', label: '30d' },
-  { id: '90d', label: '90d' },
-  { id: 'sprint', label: 'Sprint' },
 ]
 
 type GraphTopBarProps = {
@@ -133,18 +126,11 @@ const GraphTopBar = ({
             <FontAwesomeIcon icon={faCalendarDays} style={{ marginRight: 4 }} />
             Período:
           </span>
-          <div className={styles.windowChips} aria-label="Janela temporal">
-            {windows.map((w) => (
-              <button
-                key={w.id}
-                type="button"
-                className={`${styles.chipBtn} ${windowVal === w.id ? styles.chipActive : ''}`}
-                onClick={() => onWindowChange(w.id)}
-              >
-                {w.label}
-              </button>
-            ))}
-          </div>
+          <WindowPicker
+            projectId={projectId}
+            windowVal={windowVal}
+            onWindowChange={onWindowChange}
+          />
         </div>
 
         <form

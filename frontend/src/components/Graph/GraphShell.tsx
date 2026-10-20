@@ -13,6 +13,8 @@ import {
   type SyncRun,
   type SyncStartResponse,
   type ColumnMappingsResponse,
+  type MetricCatalogEntry,
+  type MetricsBundle,
 } from '../../api/client'
 import type { DockState, GraphSelection, GraphViewState } from './types'
 import GraphTopBar from './GraphTopBar'
@@ -136,7 +138,7 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
   )
 
   const graphQuery = useQuery({
-    queryKey: ['projectGraph', projectId, viewState.layer, viewState.includeBots],
+    queryKey: ['projectGraph', projectId, viewState.layer, viewState.includeBots, viewState.window],
     queryFn: () => {
       const params = new URLSearchParams({
         layer: viewState.layer,
@@ -144,9 +146,39 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
         min_weight: '1',
         include_bots: String(viewState.includeBots),
       })
+      if (viewState.window.startsWith('sprint:')) {
+        params.set('sprint_id', viewState.window.replace('sprint:', ''))
+      } else {
+        params.set('window', viewState.window)
+      }
       return api.get<ProjectGraph>(`/projects/${projectId}/graph?${params}`)
     },
     enabled: hasActiveSource,
+  })
+
+  const catalogQuery = useQuery({
+    queryKey: ['metricsCatalog'],
+    queryFn: () => api.get<MetricCatalogEntry[]>('/metrics/catalog'),
+    staleTime: Infinity,
+  })
+
+  const metricsQuery = useQuery({
+    queryKey: ['projectMetrics', projectId, viewState.window],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (viewState.window.startsWith('sprint:')) {
+        params.set('sprint_id', viewState.window.replace('sprint:', ''))
+      } else {
+        const days = parseInt(viewState.window.replace('d', ''), 10) || 30
+        const to = new Date()
+        const from = new Date()
+        from.setDate(to.getDate() - (days - 1))
+        params.set('from', from.toISOString().split('T')[0])
+        params.set('to', to.toISOString().split('T')[0])
+      }
+      return api.get<MetricsBundle>(`/projects/${projectId}/metrics?${params}`)
+    },
+    enabled: Boolean(projectId),
   })
 
   const [columnsModalOpen, setColumnsModalOpen] = useState(false)
@@ -159,6 +191,7 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
       setRunId(run.run_id)
       await queryClient.invalidateQueries({ queryKey: ['projectGraph', projectId] })
       await queryClient.invalidateQueries({ queryKey: ['projectLatestRun', projectId] })
+      await queryClient.invalidateQueries({ queryKey: ['projectMetrics', projectId] })
     },
   })
 
@@ -210,6 +243,7 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
     if (status && status !== 'queued' && status !== 'running') {
       void queryClient.invalidateQueries({ queryKey: ['projectGraph', projectId] })
       void queryClient.invalidateQueries({ queryKey: ['project', projectId] })
+      void queryClient.invalidateQueries({ queryKey: ['projectMetrics', projectId] })
     }
   }, [projectId, queryClient, runQuery.data?.status, latestRunQuery.data])
 
@@ -502,6 +536,7 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           onOpenColumnsModal={() => setColumnsModalOpen(true)}
           onOpenPeopleModal={() => setPeopleModalOpen(true)}
           onOpenLinksModal={() => setLinksModalOpen(true)}
+          projectId={projectId}
         />
       </div>
 
@@ -568,6 +603,9 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
               minWeight={viewState.minWeight}
               layoutName={viewState.layout}
               pathMode={viewState.pathMode}
+              sizeBy={viewState.sizeBy}
+              colorBy={viewState.colorBy}
+              metrics={metricsQuery.data?.metrics}
               onSelectionChange={handleSelectionChange}
               onGraphReady={setGraph}
             />
@@ -584,6 +622,8 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           activeTab={dockState.rightTab}
           onTabChange={(tab) => updateDockState({ rightTab: tab })}
           selection={viewState.selection}
+          metrics={metricsQuery.data?.metrics}
+          catalog={catalogQuery.data}
         />
       </div>
 

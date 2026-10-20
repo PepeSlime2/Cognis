@@ -1179,13 +1179,13 @@ Legenda de dependência: `→` precisa estar concluído antes.
 | Tarefa | Descrição | Aceite | Status |
 |---|---|---|---|
 | F5.1 | `seed_demo.py` (§15.2) e `windows.py` (fuso, sprints) | seed cria o projeto demo; testes de janela em UTC/BRT | feito |
-| F5.2 | `collab_graph.py` (§7.3) + `graph_metrics.py` (A) | unit tests com grafos pequenos conhecidos (valores esperados escritos à mão) | pendente |
-| F5.3 | `person_metrics.py` (B) | casos de borda: planned=0 → `null`, equipe sem atividade, pesos renormalizados | pendente |
-| F5.4 | `team_metrics.py` (C) incl. bus factor por módulo, Gini, isolamento, pontes, `review_coverage` | seed: `api/payments` tem `bus_factor=1`; Felipe é isolado | pendente |
-| F5.5 | `flow_metrics.py` (D): R1/R2, lead/cycle, atraso, rework, tempo até 1º review, WIP, gargalo, dependências | testes com cronologias fabricadas; `insufficient_data` quando falta dado | pendente |
-| F5.6 | `registry.py` + `GET /metrics/catalog` + `service.get_bundle` + snapshots (§7.5) + settings (pesos/limiares) | 2ª chamada vem do cache; mudar peso muda `config_hash` | pendente |
-| F5.7 | UI: Métricas, Pessoas (índices), tooltips do catálogo; tamanho/cor do grafo por métrica real | grafo reage à métrica escolhida | pendente |
-| F5.8 | Sprints CRUD + `WindowPicker` com sprints | janela por sprint funciona em grafo e métricas | pendente |
+| F5.2 | `collab_graph.py` (§7.3) + `graph_metrics.py` (A) | unit tests com grafos pequenos conhecidos (valores esperados escritos à mão) | feito |
+| F5.3 | `person_metrics.py` (B) | casos de borda: planned=0 → `null`, equipe sem atividade, pesos renormalizados | feito |
+| F5.4 | `team_metrics.py` (C) incl. bus factor por módulo, Gini, isolamento, pontes, `review_coverage` | seed: `api/payments` tem `bus_factor=1`; Felipe é isolado | feito |
+| F5.5 | `flow_metrics.py` (D): R1/R2, lead/cycle, atraso, rework, tempo até 1º review, WIP, gargalo, dependências | testes com cronologias fabricadas; `insufficient_data` quando falta dado | feito |
+| F5.6 | `registry.py` + `GET /metrics/catalog` + `service.get_bundle` + snapshots (§7.5) + settings (pesos/limiares) | 2ª chamada vem do cache; mudar peso muda `config_hash` | feito |
+| F5.7 | UI: Métricas, Pessoas (índices), tooltips do catálogo; tamanho/cor do grafo por métrica real | grafo reage à métrica escolhida | feito |
+| F5.8 | Sprints CRUD + `WindowPicker` com sprints | janela por sprint funciona em grafo e métricas | feito |
 
 ### F6 — Signals e painel de Insights (M) → F5
 

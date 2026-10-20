@@ -259,3 +259,55 @@ export type LinksResponse = {
     url: string | null
   }>
 }
+
+export type MetricCatalogEntry = {
+  id: string
+  name: string
+  category: string
+  scope: string
+  unit: string
+  description: string
+  formula: string
+  min_sample: string
+}
+
+export type MetricResult = {
+  id: string
+  scope: string
+  status: 'ok' | 'insufficient_data' | 'not_applicable'
+  unit: string
+  values: Record<string, unknown> | number | string | boolean | null
+  reason: string | null
+  inputs: Record<string, unknown>
+  formula_version?: number
+}
+
+export type MetricsBundle = {
+  project_id: string
+  window: {
+    from: string
+    to: string
+    timezone: string
+    start_utc: string
+    end_utc: string
+    duration_days: number
+  }
+  data_version: string
+  config_hash: string
+  generated_at: string
+  warnings: string[]
+  metrics: Record<string, MetricResult>
+  signals: unknown[]
+  cached: boolean
+}
+
+export type Sprint = {
+  id: string
+  project_id: string
+  name: string
+  start_date: string | null
+  end_date: string | null
+  start_civil: string | null
+  end_civil: string | null
+}
+

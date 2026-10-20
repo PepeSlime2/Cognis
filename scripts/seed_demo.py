@@ -371,8 +371,10 @@ def seed_demo(
         add_commit(f"sha_page_carla_{i:02d}", "carla", ts, "web/pages", 30, 5)
         add_commit(f"sha_page_elisa_{i:02d}", "elisa", ts, "web/pages", 35, 7)
 
-    # Felipe altera infra/docker isoladamente (1 commit)
+    # Felipe altera infra/docker isoladamente (3 commits)
     add_commit("sha_infra_felipe_01", "felipe", dt.datetime(2026, 1, 15, 10, 0, 0, tzinfo=dt.timezone.utc), "infra/docker", 20, 5)
+    add_commit("sha_infra_felipe_02", "felipe", dt.datetime(2026, 1, 17, 10, 0, 0, tzinfo=dt.timezone.utc), "infra/docker", 15, 3)
+    add_commit("sha_infra_felipe_03", "felipe", dt.datetime(2026, 1, 22, 10, 0, 0, tzinfo=dt.timezone.utc), "infra/docker", 25, 8)
 
     writer.upsert_nodes(DEMO_PROJECT_ID, "Commit", commit_nodes)
     writer.upsert_relationships(DEMO_PROJECT_ID, "Account", "REALIZOU", "Commit", realizou_rels)
@@ -558,6 +560,42 @@ def seed_demo(
             "target_uid": board_uid,
             "properties": {},
         })
+
+    # Tarefa de infra atribuída a Felipe
+    felipe_t_uid = make_uid(DEMO_PROJECT_ID, "task", DEMO_PROVIDER, "task-felipe-01")
+    felipe_acc_uid = make_uid(DEMO_PROJECT_ID, "account", DEMO_PROVIDER, "felipe")
+    task_nodes.append({
+        "uid": felipe_t_uid,
+        "project_id": DEMO_PROJECT_ID,
+        "kind": "card",
+        "provider": DEMO_PROVIDER,
+        "title": "Configuração de containers CI",
+        "status_category": "done",
+        "created_at": dt.datetime(2026, 1, 10, 9, 0, 0, tzinfo=dt.timezone.utc),
+        "updated_at": dt.datetime(2026, 1, 18, 16, 0, 0, tzinfo=dt.timezone.utc),
+        "due_at": dt.datetime(2026, 1, 18, 18, 0, 0, tzinfo=dt.timezone.utc),
+        "done_at": dt.datetime(2026, 1, 18, 16, 0, 0, tzinfo=dt.timezone.utc),
+        "started_at": dt.datetime(2026, 1, 11, 9, 0, 0, tzinfo=dt.timezone.utc),
+        "blocked": False,
+        "labels": ["infra"],
+        "transitions_json": None,
+        "url": "https://demo.local/cards/task-felipe-01",
+    })
+    responsavel_rels.append({
+        "source_uid": felipe_acc_uid,
+        "target_uid": felipe_t_uid,
+        "properties": {},
+    })
+    na_coluna_rels.append({
+        "source_uid": felipe_t_uid,
+        "target_uid": done_col_uid,
+        "properties": {},
+    })
+    no_quadro_rels.append({
+        "source_uid": felipe_t_uid,
+        "target_uid": board_uid,
+        "properties": {},
+    })
 
     # Tarefas Sprint 3: 10 tarefas concluídas dentro do período [2026-02-02, 2026-02-15]
     # Tarefas 1 a 7: pontuais (done_at <= due_at)

@@ -2,13 +2,27 @@ import { useEffect, useMemo, useRef } from 'react'
 import cytoscape from 'cytoscape'
 import type { Core, ElementDefinition, LayoutOptions, StylesheetJson } from 'cytoscape'
 import fcose from 'cytoscape-fcose'
-import type { GraphNodeData, ProjectGraph } from '../../api/client'
+import type { GraphNodeData, MetricResult, ProjectGraph } from '../../api/client'
 import type { GraphSelection } from './types'
 import styles from './graph.module.css'
 
 cytoscape.use(fcose)
 
+const communityColors = [
+  '#6366f1',
+  '#10b981',
+  '#f59e0b',
+  '#ec4899',
+  '#8b5cf6',
+  '#06b6d4',
+  '#f97316',
+  '#14b8a6',
+  '#eab308',
+  '#3b82f6',
+]
+
 function svgToUri(svgString: string): string {
+
   return `data:image/svg+xml;utf8,${encodeURIComponent(svgString)}`
 }
 
@@ -264,6 +278,9 @@ type GraphCanvasProps = {
   minWeight: number
   layoutName?: string
   pathMode?: boolean
+  sizeBy?: string
+  colorBy?: string
+  metrics?: Record<string, MetricResult>
   onSelectionChange: (selection: GraphSelection) => void
   onGraphReady: (graph: Core | null) => void
 }
@@ -287,6 +304,9 @@ const GraphCanvas = ({
   minWeight,
   layoutName = 'fcose',
   pathMode = false,
+  sizeBy = 'degree',
+  colorBy = 'tipo',
+  metrics,
   onSelectionChange,
   onGraphReady,
 }: GraphCanvasProps) => {
@@ -453,6 +473,116 @@ const GraphCanvas = ({
     if (!graph) return
     graph.nodes().style('label', labelsVisible ? 'data(label)' : '')
   }, [labelsVisible])
+
+  useEffect(() => {
+    const graph = graphRef.current
+    if (!graph) return
+
+    // 1. Reagir ao tamanho (sizeBy)
+    const sizeMetricMap: Record<string, string> = {
+      degree: 'graph.degree',
+      weighted_degree: 'graph.weighted_degree',
+      betweenness: 'graph.betweenness',
+      closeness: 'graph.closeness',
+      pagerank: 'graph.pagerank',
+      participation: 'person.participation',
+    }
+    const targetMetricId = sizeMetricMap[sizeBy]
+
+    const metricValues: Record<string, number> = {}
+    if (targetMetricId && metrics?.[targetMetricId]?.values) {
+      const rawVals = metrics[targetMetricId].values
+      if (typeof rawVals === 'object') {
+        Object.entries(rawVals).forEach(([k, v]) => {
+          if (typeof v === 'number') metricValues[k] = v
+        })
+      }
+    }
+
+    const numericList = Object.values(metricValues)
+    const minVal = numericList.length > 0 ? Math.min(...numericList) : 0
+    const maxVal = numericList.length > 0 ? Math.max(...numericList) : 1
+    const span = maxVal > minVal ? maxVal - minVal : 1
+
+    graph.batch(() => {
+      graph.nodes().forEach((node) => {
+        // Normalização de tamanho
+        let normSize: number
+        if (sizeBy === 'uniforme') {
+          normSize = 0.5
+        } else if (metricValues[node.id()] !== undefined) {
+          normSize = 0.1 + ((metricValues[node.id()] - minVal) / span) * 0.9
+        } else {
+          const rawDegree = Number(node.data('size_metric') ?? 0.5)
+          normSize = Math.max(0.1, Math.min(1.0, rawDegree))
+        }
+        node.data('size_metric', normSize)
+
+        // 2. Reagir à cor (colorBy)
+        if (colorBy === 'comunidade') {
+          const commVals = metrics?.['graph.community']?.values as Record<string, string> | undefined
+          const commData = (commVals?.[node.id()] ?? node.data('community')) as string | undefined
+          if (commData && commData.startsWith('C')) {
+            const idx = parseInt(commData.replace('C', ''), 10) - 1
+            const color = communityColors[idx % communityColors.length]
+            node.style({
+              'underlay-color': color,
+              'underlay-opacity': 0.45,
+              'underlay-padding': '6px',
+              'border-width': 0,
+            })
+          } else {
+            node.style({ 'underlay-opacity': 0, 'border-width': 0 })
+          }
+        } else if (colorBy === 'risco') {
+          const riskVals = metrics?.['flow.bottleneck_risk']?.values as
+            | Record<string, { level?: string }>
+            | undefined
+          const bRisk = riskVals?.[node.id()]
+          const isoVals = metrics?.['team.isolation']?.values as
+            | Record<string, { flag?: boolean }>
+            | undefined
+          const iso = isoVals?.[node.id()]
+          const isRisk =
+            bRisk?.level === 'high' || iso?.flag === true || node.data('blocked') === true
+
+          if (isRisk) {
+            node.style({
+              'underlay-color': '#ef4444',
+              'underlay-opacity': 0.5,
+              'underlay-padding': '6px',
+              'border-width': '2px',
+              'border-style': 'dashed',
+              'border-color': '#ef4444',
+            })
+          } else {
+            node.style({ 'underlay-opacity': 0, 'border-width': 0 })
+          }
+        } else if (colorBy === 'categoria da tarefa') {
+          if (node.data('type') === 'task') {
+            const st = node.data('status_category')
+            let taskColor = '#64748b'
+            if (st === 'done') taskColor = '#10b981'
+            else if (st === 'doing') taskColor = '#3b82f6'
+            else if (st === 'review') taskColor = '#8b5cf6'
+            node.style({
+              'underlay-color': taskColor,
+              'underlay-opacity': 0.5,
+              'underlay-padding': '5px',
+              'border-width': 0,
+            })
+          } else {
+            node.style({ 'underlay-opacity': 0, 'border-width': 0 })
+          }
+        } else {
+          // colorBy === 'tipo' (padrão)
+          node.style({ 'underlay-opacity': 0, 'border-width': 0 })
+        }
+      })
+      syncNodeSizesWithZoom(graph)
+    })
+  }, [sizeBy, colorBy, metrics])
+
 
   return (
     <div

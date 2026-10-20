@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark, faLightbulb, faCircleInfo } from '@fortawesome/free-solid-svg-icons'
 import type { GraphSelection } from './types'
+import type { MetricCatalogEntry, MetricResult } from '../../api/client'
 import styles from './rightDock.module.css'
 
 const nodeTypeLabels: Record<string, string> = {
@@ -20,6 +21,8 @@ type RightDockProps = {
   activeTab: 'details' | 'insights'
   onTabChange: (tab: 'details' | 'insights') => void
   selection: GraphSelection
+  metrics?: Record<string, MetricResult>
+  catalog?: MetricCatalogEntry[]
 }
 
 const RightDock = ({
@@ -28,7 +31,10 @@ const RightDock = ({
   activeTab,
   onTabChange,
   selection,
+  metrics,
+  catalog,
 }: RightDockProps) => {
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
   const [aiGenerating, setAiGenerating] = useState(false)
   const [aiMessage, setAiMessage] = useState<string | null>(null)
 
@@ -110,21 +116,119 @@ const RightDock = ({
                   ))}
                 </div>
 
-                {selection.data.metrics && (
-                  <div style={{ marginTop: 8 }}>
-                    <strong style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                      Métricas
-                    </strong>
-                    {Object.entries(selection.data.metrics)
-                      .filter(([, v]) => typeof v === 'number' && Number.isFinite(v))
-                      .map(([k, v]) => (
-                        <div className={styles.detailRow} key={k}>
-                          <span>{k}</span>
-                          <span>{Number(v).toFixed(2)}</span>
-                        </div>
-                      ))}
-                  </div>
-                )}
+                {/* Métricas do Nó */}
+                {(() => {
+                  const nodeId = selection.data.id
+                  const catalogMap = new Map(catalog?.map((c) => [c.id, c]))
+                  const relevantIds = [
+                    'person.overall',
+                    'person.participation',
+                    'person.collaboration',
+                    'person.delivery',
+                    'person.quality',
+                    'graph.degree',
+                    'graph.pagerank',
+                    'graph.betweenness',
+                    'flow.wip_per_person',
+                  ]
+
+                  const rows: Array<{ id: string; name: string; valStr: string }> = []
+                  relevantIds.forEach((mId) => {
+                    const mResult = metrics?.[mId]
+                    if (mResult && mResult.values && typeof mResult.values === 'object') {
+                      const v = mResult.values[nodeId]
+                      if (v !== undefined && v !== null) {
+                        const numVal = typeof v === 'object' && 'overall' in v ? v.overall : v
+                        if (typeof numVal === 'number') {
+                          const cat = catalogMap.get(mId)
+                          rows.push({
+                            id: mId,
+                            name: cat?.name ?? mId,
+                            valStr: numVal.toFixed(2),
+                          })
+                        }
+                      }
+                    }
+                  })
+
+                  // Fallback para métricas embutidas no próprio nó
+                  if (rows.length === 0 && selection.data.metrics) {
+                    Object.entries(selection.data.metrics).forEach(([k, v]) => {
+                      if (typeof v === 'number' && Number.isFinite(v)) {
+                        rows.push({ id: k, name: k, valStr: v.toFixed(2) })
+                      }
+                    })
+                  }
+
+                  if (rows.length === 0) return null
+
+                  return (
+                    <div style={{ marginTop: 12 }}>
+                      <strong style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                        Métricas Calculadas
+                      </strong>
+                      {rows.map(({ id, name, valStr }) => {
+                        const cat = catalogMap.get(id)
+                        return (
+                          <div className={styles.detailRow} key={id} style={{ position: 'relative' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span>{name}</span>
+                              {cat && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setActiveTooltip(activeTooltip === id ? null : id)
+                                  }
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: '#64748b',
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                  }}
+                                  aria-label={`Ver fórmula de ${name}`}
+                                >
+                                  <FontAwesomeIcon icon={faCircleInfo} style={{ fontSize: 11 }} />
+                                </button>
+                              )}
+                            </div>
+                            <span style={{ fontWeight: 600, color: '#c084fc' }}>{valStr}</span>
+
+                            {activeTooltip === id && cat && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: '100%',
+                                  left: 0,
+                                  right: 0,
+                                  background: '#0f0b29',
+                                  border: '1px solid #8b5cf6',
+                                  padding: 8,
+                                  borderRadius: 6,
+                                  fontSize: 11,
+                                  zIndex: 50,
+                                  boxShadow: '0 8px 20px rgba(0,0,0,0.6)',
+                                }}
+                              >
+                                <p style={{ margin: 0, color: '#e2e8f0' }}>{cat.description}</p>
+                                <span
+                                  style={{
+                                    color: '#c084fc',
+                                    fontFamily: 'monospace',
+                                    display: 'block',
+                                    marginTop: 4,
+                                  }}
+                                >
+                                  Fórmula: {cat.formula}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
 
                 {selection.data.url && (
                   <a

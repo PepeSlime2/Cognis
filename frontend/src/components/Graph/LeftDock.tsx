@@ -11,6 +11,7 @@ import {
   faClock,
   faUsers,
   faLink,
+  faChartSimple,
 } from '@fortawesome/free-solid-svg-icons'
 import type { ProviderConnection, SyncRun } from '../../api/client'
 import iconTrello from '../../assets/trelloicon.png'
@@ -38,6 +39,7 @@ type LeftDockProps = {
   onOpenColumnsModal?: () => void
   onOpenPeopleModal?: () => void
   onOpenLinksModal?: () => void
+  projectId?: string
 }
 
 const LeftDock = ({
@@ -61,6 +63,7 @@ const LeftDock = ({
   onOpenColumnsModal,
   onOpenPeopleModal,
   onOpenLinksModal,
+  projectId,
 }: LeftDockProps) => {
   const navigate = useNavigate()
   const hasActiveSource = hasActiveSourceProp ?? hasGithubSource
@@ -409,6 +412,26 @@ const LeftDock = ({
                   ),
                 )}
               </div>
+              {projectId && (
+                <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className={styles.settingsNavBtn}
+                    onClick={() => navigate(`/p/${projectId}/metrics`)}
+                  >
+                    <FontAwesomeIcon icon={faChartSimple} />
+                    <span>Painel Geral de Métricas</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.settingsNavBtn}
+                    onClick={() => navigate(`/p/${projectId}/people`)}
+                  >
+                    <FontAwesomeIcon icon={faUsers} />
+                    <span>Índices e Pessoas</span>
+                  </button>
+                </div>
+              )}
               {reportFeedback && (
                 <p className={styles.serviceError} role="status">
                   {reportFeedback}
@@ -448,10 +471,30 @@ const LeftDock = ({
                 <FontAwesomeIcon icon={faGear} />
                 <span>Configurações do Projeto</span>
               </button>
+              {projectId && (
+                <>
+                  <button
+                    type="button"
+                    className={styles.settingsNavBtn}
+                    onClick={() => navigate(`/p/${projectId}/metrics`)}
+                  >
+                    <FontAwesomeIcon icon={faChartSimple} />
+                    <span>Métricas Detalhadas</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.settingsNavBtn}
+                    onClick={() => navigate(`/p/${projectId}/people`)}
+                  >
+                    <FontAwesomeIcon icon={faUsers} />
+                    <span>Tabela de Pessoas</span>
+                  </button>
+                </>
+              )}
               {onOpenPeopleModal && (
                 <button type="button" className={styles.settingsNavBtn} onClick={onOpenPeopleModal}>
                   <FontAwesomeIcon icon={faUsers} />
-                  <span>Pessoas</span>
+                  <span>Pessoas (Identidades)</span>
                 </button>
               )}
               {onOpenLinksModal && (

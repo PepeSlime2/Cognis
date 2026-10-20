@@ -1,0 +1,80 @@
+.container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chipBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.chipBtn:hover {
+  background: rgba(139, 92, 246, 0.15);
+  color: #ffffff;
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.chipActive {
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
+  color: #ffffff;
+  border-color: #8b5cf6;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.4);
+}
+
+.sprintSelect {
+  background: rgba(20, 16, 50, 0.8);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #e2e8f0;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  max-width: 140px;
+}
+
+.sprintSelect:focus {
+  border-color: #8b5cf6;
+}
+
+.sprintSelectActive {
+  border-color: #8b5cf6;
+  background: rgba(124, 58, 237, 0.25);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.manageBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 11px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.manageBtn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  color: #ffffff;
+  border-color: #8b5cf6;
+}
