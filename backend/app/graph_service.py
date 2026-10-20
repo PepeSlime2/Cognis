@@ -39,7 +39,7 @@ WHERE n.project_id = $project_id
 OPTIONAL MATCH (n)-[r]-(neighbor)
 WHERE neighbor.project_id = $project_id
   AND ($include_bots OR NOT coalesce(neighbor.is_bot, false))
-WITH n, sum(CASE WHEN r IS NULL THEN 0 ELSE coalesce(r.weight, 1) END) AS degree
+WITH n, sum(CASE WHEN r IS NULL THEN 0 ELSE coalesce(properties(r).weight, 1) END) AS degree
 ORDER BY degree DESC, n.uid
 LIMIT $limit
 RETURN labels(n) AS labels, properties(n) AS properties, degree

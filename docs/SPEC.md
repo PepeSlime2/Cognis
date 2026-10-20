@@ -1172,13 +1172,13 @@ Legenda de dependência: `→` precisa estar concluído antes.
 | F4.3 | Toolbar: janela, tamanho/cor por métrica (provisório: `degree`), busca, peso mínimo, exportar PNG, caminho mais curto | todas as opções funcionam; `prefers-reduced-motion` respeitado | feito |
 | F4.4 | Chips Todos/Pessoas/Atividades/Artefatos ligados a `layer`; estados vazio/erro/truncado | cada chip muda o grafo; estados visíveis | feito |
 | F4.5 | Layout full tela do grafo (§12.4.1): `GraphShell`, `GraphTopBar`, `LeftDock`, `RightDock`, `DockState`, modo foco, atalhos, responsivo | critérios de aceite (a)–(i) de §12.4.1 | feito |
-| F4.6 | Direção visual e animações “Constelação viva” (§12.5.1): `graphStyle.ts`, `Graph/fx.ts`, `Graph/avatar.ts`, níveis de efeito | critérios de aceite (a)–(j) de §12.5.1 | pendente |
+| F4.6 | Direção visual e animações “Constelação viva” (§12.5.1): `graphStyle.ts`, `Graph/fx.ts`, `Graph/avatar.ts`, níveis de efeito | critérios de aceite (a)–(j) de §12.5.1 | feito |
 
 ### F5 — Motor de métricas (L) → F4 (pode começar em paralelo após F3 com o seed)
 
 | Tarefa | Descrição | Aceite | Status |
 |---|---|---|---|
-| F5.1 | `seed_demo.py` (§15.2) e `windows.py` (fuso, sprints) | seed cria o projeto demo; testes de janela em UTC/BRT | pendente |
+| F5.1 | `seed_demo.py` (§15.2) e `windows.py` (fuso, sprints) | seed cria o projeto demo; testes de janela em UTC/BRT | feito |
 | F5.2 | `collab_graph.py` (§7.3) + `graph_metrics.py` (A) | unit tests com grafos pequenos conhecidos (valores esperados escritos à mão) | pendente |
 | F5.3 | `person_metrics.py` (B) | casos de borda: planned=0 → `null`, equipe sem atividade, pesos renormalizados | pendente |
 | F5.4 | `team_metrics.py` (C) incl. bus factor por módulo, Gini, isolamento, pontes, `review_coverage` | seed: `api/payments` tem `bus_factor=1`; Felipe é isolado | pendente |

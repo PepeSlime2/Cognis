@@ -52,7 +52,7 @@ const TopSideBar = ({ onLogout, connections, projectId }: TopSideBarProps) => {
         <div className={styles.brandLogo} onClick={() => navigate('/')} role="button" tabIndex={0} title="COGNIS">
           <img src={cognisLogo} alt="COGNIS" className={styles.brandLogoImg} />
         </div>
-        <span className={styles.brandTag}>v1.2</span>
+        {/* <span className={styles.brandTag}>v1.2</span> */}
       </div>
 
       <div className={styles.topSideBarContainer}>
