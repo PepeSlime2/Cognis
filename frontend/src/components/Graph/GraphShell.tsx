@@ -16,6 +16,7 @@ import {
   type MetricCatalogEntry,
   type MetricsBundle,
   type Signal,
+  type ReportType,
 } from '../../api/client'
 import type { DockState, GraphSelection, GraphViewState } from './types'
 import GraphTopBar from './GraphTopBar'
@@ -27,6 +28,7 @@ import GraphLegend from './GraphLegend'
 import { ColumnsModal } from '../ColumnsModal/ColumnsModal'
 import { PeopleModal } from '../Identity/PeopleModal'
 import { LinksModal } from '../Identity/LinksModal'
+import { ReportDialog } from '../Reports/ReportDialog'
 import styles from './graphShell.module.css'
 
 type ProjectSource = {
@@ -206,6 +208,8 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
   const [columnsModalOpen, setColumnsModalOpen] = useState(false)
   const [peopleModalOpen, setPeopleModalOpen] = useState(false)
   const [linksModalOpen, setLinksModalOpen] = useState(false)
+  const [reportDialogOpen, setReportDialogOpen] = useState(false)
+  const [reportDialogType, setReportDialogType] = useState<ReportType>('sprint')
 
   const syncMutation = useMutation({
     mutationFn: () => api.post<SyncStartResponse>(`/projects/${projectId}/sync`),
@@ -622,6 +626,10 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           onOpenColumnsModal={() => setColumnsModalOpen(true)}
           onOpenPeopleModal={() => setPeopleModalOpen(true)}
           onOpenLinksModal={() => setLinksModalOpen(true)}
+          onOpenReportDialog={(type) => {
+            if (type) setReportDialogType(type)
+            setReportDialogOpen(true)
+          }}
           projectId={projectId}
         />
       </div>
@@ -721,6 +729,8 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           }}
           selectedSignalId={selectedSignalId}
           onSignalClick={handleSignalClick}
+          projectId={projectId}
+          windowVal={viewState.window}
         />
       </div>
 
@@ -743,6 +753,14 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           projectId={projectId}
           isOpen={linksModalOpen}
           onClose={() => setLinksModalOpen(false)}
+        />
+      )}
+      {projectId && (
+        <ReportDialog
+          projectId={projectId}
+          isOpen={reportDialogOpen}
+          onClose={() => setReportDialogOpen(false)}
+          initialType={reportDialogType}
         />
       )}
     </div>

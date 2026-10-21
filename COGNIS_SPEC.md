@@ -1202,20 +1202,20 @@ Legenda de dependência: `→` precisa estar concluído antes.
 | F7.2 | `facts_builder.py` (+ anonimização) e `schemas.py` | `facts` ≤ ~3k tokens; mapa de anonimização reversível só no servidor | feito |
 | F7.3 | `validator.py` (§9.7) com testes (números/refs inventados reprovam) | 100% dos casos “maliciosos” de teste são pegos | feito |
 | F7.4 | `pipeline.py`: seções, retry com feedback, fallback `templates.py`; tabela `analyses`; endpoints (§11) | com Ollama desligado, a análise sai por template e marca `source='template'` | feito |
-| F7.5 | UI: `AnalysisPanel` (job, progresso, selo, “ver dados usados”, anonimizar) | texto de IA aparece com selo; números destacados batem com `facts` | pendente |
-| F7.6 | `tests/llm_eval/` (§9.9) e rodada de avaliação | planilha de resultados gerada | pendente |
+| F7.5 | UI: `AnalysisPanel` (job, progresso, selo, “ver dados usados”, anonimizar) | texto de IA aparece com selo; números destacados batem com `facts` | feito |
+| F7.6 | `tests/llm_eval/` (§9.9) e rodada de avaliação | planilha de resultados gerada | feito |
 
 ### F8 — Relatórios (L) → F7 (HTML pode começar após F6 usando só templates)
 
 | Tarefa | Descrição | Aceite | Status |
 |---|---|---|---|
-| F8.1 | `ReportModel` + `builder.py` para os 5 tipos (§10.1) | JSON válido para cada tipo com o seed | pendente |
-| F8.2 | `charts.py` (matplotlib Agg) + imagem do grafo | PNGs legíveis, cores por comunidade | pendente |
-| F8.3 | `render_html.py` (Jinja2, arquivo único) | abre offline, com gráficos | pendente |
-| F8.4 | `render_docx.py` | abre no Word sem aviso; tabelas/imagens ok | pendente |
-| F8.5 | `render_pdf.py` (ReportLab) com acentos corretos | PDF com acentos, tabelas e imagens | pendente |
-| F8.6 | Endpoints + `ReportDialog` + lista/download autenticado | usuário B não baixa relatório do A | pendente |
-| F8.7 | Relatório **Individual** com avisos de §13.4 e anonimização | aviso presente nos 3 formatos | pendente |
+| F8.1 | `ReportModel` + `builder.py` para os 5 tipos (§10.1) | JSON válido para cada tipo com o seed | feito |
+| F8.2 | `charts.py` (matplotlib Agg) + imagem do grafo | PNGs legíveis, cores por comunidade | feito |
+| F8.3 | `render_html.py` (Jinja2, arquivo único) | abre offline, com gráficos | feito |
+| F8.4 | `render_docx.py` | abre no Word sem aviso; tabelas/imagens ok | feito |
+| F8.5 | `render_pdf.py` (ReportLab) com acentos corretos | PDF com acentos, tabelas e imagens | feito |
+| F8.6 | Endpoints + `ReportDialog` + lista/download autenticado | usuário B não baixa relatório do A | feito |
+| F8.7 | Relatório **Individual** com avisos de §13.4 e anonimização | aviso presente nos 3 formatos | feito |
 
 ### F9 — Evolução temporal (M) → F5
 

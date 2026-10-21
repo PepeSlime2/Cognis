@@ -340,3 +340,113 @@ export type Sprint = {
   end_civil: string | null
 }
 
+export type AnalysisScope = 'team' | 'collaboration' | 'risks' | 'sprint' | 'person'
+
+export type AnalysisEvidence = {
+  ref: string
+}
+
+export type AnalysisFinding = {
+  titulo: string
+  descricao: string
+  severidade: 'baixa' | 'media' | 'alta'
+  evidencias: AnalysisEvidence[]
+}
+
+export type AnalysisRecommendation = {
+  acao: string
+  justificativa: string
+  evidencias: AnalysisEvidence[]
+}
+
+export type AnalysisSection = {
+  resumo: string
+  achados: AnalysisFinding[]
+  recomendacoes: AnalysisRecommendation[]
+  limitacoes: string[]
+}
+
+export type AnalysisValidation = {
+  passed: boolean
+  retries?: number
+  violations?: string[]
+  source?: string
+  error?: string
+  [key: string]: unknown
+}
+
+export type Analysis = {
+  id: string
+  analysis_id: string
+  project_id: string
+  scope: AnalysisScope | string
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  model: string | null
+  source: 'ollama' | 'template' | 'mixed'
+  window: {
+    from: string | null
+    to: string | null
+  }
+  person_uid: string | null
+  facts: Record<string, unknown>
+  result: AnalysisSection | null
+  validation: AnalysisValidation | null
+  created_at: string | null
+}
+
+export type AnalysisCreateRequest = {
+  scope?: AnalysisScope | string
+  window?: string
+  from?: string
+  to?: string
+  sprint_id?: string
+  person_uid?: string
+  anonymize?: boolean
+  force_template?: boolean
+  wait?: boolean
+}
+
+export type ReportType = 'sprint' | 'gerencial' | 'individual' | 'gargalos' | 'colaboracao'
+export type ReportFormat = 'html' | 'docx' | 'pdf'
+
+export type ReportItem = {
+  id: string
+  report_id: string
+  project_id: string
+  type: ReportType
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  window: {
+    from: string | null
+    to: string | null
+  }
+  person_uid: string | null
+  formats: ReportFormat[]
+  files: Record<string, string>
+  created_at: string | null
+}
+
+export type ReportCreateRequest = {
+  type: ReportType
+  window?: string
+  from?: string
+  to?: string
+  sprint_id?: string
+  person_uid?: string
+  formats?: ReportFormat[]
+  include_ai?: boolean
+  anonymize?: boolean
+  wait?: boolean
+}
+
+export const reportsApi = {
+  createReport: (projectId: string, payload: ReportCreateRequest): Promise<ReportItem> =>
+    api.post<ReportItem>(`/projects/${projectId}/reports`, payload),
+  getReport: (id: string): Promise<ReportItem> =>
+    api.get<ReportItem>(`/reports/${id}`),
+  listReports: (projectId: string): Promise<ReportItem[]> =>
+    api.get<ReportItem[]>(`/projects/${projectId}/reports`),
+  getDownloadUrl: (id: string, format: ReportFormat): string =>
+    `/api/reports/${id}/download?format=${format}`,
+}
+
+

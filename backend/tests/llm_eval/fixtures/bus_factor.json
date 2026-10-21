@@ -1,0 +1,58 @@
+{
+  "window": {
+    "from": "2026-09-01",
+    "to": "2026-09-14",
+    "label": "Sprint 3 - Concentração de Conhecimento"
+  },
+  "team": {
+    "active_members": 6,
+    "density": 0.48,
+    "modularity": 0.25,
+    "completion_rate": 0.80,
+    "late_rate": 0.08,
+    "bus_factor": 1
+  },
+  "signals": [
+    {
+      "id": "S1",
+      "code": "BUS_FACTOR_1",
+      "severity": "high",
+      "subject": "Diego",
+      "target": "api/payments",
+      "evidence": [
+        {
+          "metric_id": "team.knowledge_concentration",
+          "value": 1.0
+        }
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "id": "M1",
+      "metric_id": "team.knowledge_concentration",
+      "target": "api/payments",
+      "value": 1.0
+    },
+    {
+      "id": "M2",
+      "metric_id": "team.bus_factor",
+      "target": "api/payments",
+      "value": 1
+    },
+    {
+      "id": "M3",
+      "metric_id": "person.participation",
+      "subject": "Diego",
+      "value": 0.35
+    },
+    {
+      "id": "M4",
+      "metric_id": "flow.completion_rate",
+      "value": 0.80
+    }
+  ],
+  "limits": [
+    "módulo api/payments modificado exclusivamente por um único autor"
+  ]
+}

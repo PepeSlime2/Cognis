@@ -40,6 +40,7 @@ from .graph_router import router as graph_router
 from .metrics_router import router as metrics_router
 from .sprints_router import router as sprints_router
 from .analyses_router import router as analyses_router
+from .reports_router import router as reports_router
 from .ingest.scheduler import start_scheduler, stop_scheduler
 from .project_sync import mark_interrupted_sync_runs
 from .llm.client import check_ollama_health
@@ -82,6 +83,7 @@ app.include_router(graph_router)
 app.include_router(metrics_router)
 app.include_router(sprints_router)
 app.include_router(analyses_router)
+app.include_router(reports_router)
 
 
 @app.middleware("http")

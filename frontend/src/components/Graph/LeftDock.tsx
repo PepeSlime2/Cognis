@@ -12,6 +12,7 @@ import {
   faUsers,
   faLink,
   faChartSimple,
+  faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons'
 import type { ProviderConnection, SyncRun } from '../../api/client'
 import iconTrello from '../../assets/trelloicon.png'
@@ -39,6 +40,7 @@ type LeftDockProps = {
   onOpenColumnsModal?: () => void
   onOpenPeopleModal?: () => void
   onOpenLinksModal?: () => void
+  onOpenReportDialog?: (type?: 'sprint' | 'gerencial' | 'individual' | 'gargalos' | 'colaboracao') => void
   projectId?: string
 }
 
@@ -63,6 +65,7 @@ const LeftDock = ({
   onOpenColumnsModal,
   onOpenPeopleModal,
   onOpenLinksModal,
+  onOpenReportDialog,
   projectId,
 }: LeftDockProps) => {
   const navigate = useNavigate()
@@ -73,7 +76,6 @@ const LeftDock = ({
     reports: false,
     settings: false,
   })
-  const [reportFeedback, setReportFeedback] = useState<string | null>(null)
 
   const toggleSection = (section: string) => {
     setOpenSections((prev) => ({
@@ -91,8 +93,17 @@ const LeftDock = ({
   }
 
   const handleReportClick = (name: string) => {
-    setReportFeedback(`Relatório "${name}" selecionado (em breve geração via IA).`)
-    setTimeout(() => setReportFeedback(null), 3500)
+    const typeMap: Record<string, 'sprint' | 'gerencial' | 'individual' | 'gargalos' | 'colaboracao'> = {
+      'Sprint': 'sprint',
+      'Gerencial': 'gerencial',
+      'Individual': 'individual',
+      'Gargalos': 'gargalos',
+      'Colaboração': 'colaboracao',
+    }
+    const rType = typeMap[name] || 'sprint'
+    if (onOpenReportDialog) {
+      onOpenReportDialog(rType)
+    }
   }
 
   if (!isOpen) {
@@ -430,12 +441,15 @@ const LeftDock = ({
                     <FontAwesomeIcon icon={faUsers} />
                     <span>Índices e Pessoas</span>
                   </button>
+                  <button
+                    type="button"
+                    className={styles.settingsNavBtn}
+                    onClick={() => navigate(`/p/${projectId}/analysis`)}
+                  >
+                    <FontAwesomeIcon icon={faWandMagicSparkles} />
+                    <span>Análises com IA</span>
+                  </button>
                 </div>
-              )}
-              {reportFeedback && (
-                <p className={styles.serviceError} role="status">
-                  {reportFeedback}
-                </p>
               )}
             </div>
           )}

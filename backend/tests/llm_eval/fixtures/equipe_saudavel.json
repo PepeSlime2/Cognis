@@ -1,0 +1,76 @@
+{
+  "window": {
+    "from": "2026-09-01",
+    "to": "2026-09-14",
+    "label": "Sprint 3 - Equipe Saudável"
+  },
+  "team": {
+    "active_members": 6,
+    "density": 0.52,
+    "modularity": 0.18,
+    "completion_rate": 0.88,
+    "late_rate": 0.05,
+    "bus_factor": 3
+  },
+  "signals": [
+    {
+      "id": "S1",
+      "code": "HEALTHY_DISTRIBUTION",
+      "severity": "info",
+      "subject": "Equipe",
+      "evidence": [
+        {
+          "metric_id": "flow.completion_rate",
+          "value": 0.88
+        },
+        {
+          "metric_id": "flow.late_rate",
+          "value": 0.05
+        }
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "id": "M1",
+      "metric_id": "graph.density",
+      "value": 0.52
+    },
+    {
+      "id": "M2",
+      "metric_id": "graph.modularity",
+      "value": 0.18
+    },
+    {
+      "id": "M3",
+      "metric_id": "flow.completion_rate",
+      "value": 0.88
+    },
+    {
+      "id": "M4",
+      "metric_id": "team.bus_factor",
+      "value": 3
+    },
+    {
+      "id": "M5",
+      "metric_id": "person.participation",
+      "subject": "Ana",
+      "value": 0.18
+    },
+    {
+      "id": "M6",
+      "metric_id": "person.participation",
+      "subject": "Bruno",
+      "value": 0.20
+    },
+    {
+      "id": "M7",
+      "metric_id": "person.participation",
+      "subject": "Carla",
+      "value": 0.16
+    }
+  ],
+  "limits": [
+    "dados coletados durante sprint de 14 dias com estabilidade no fluxo"
+  ]
+}

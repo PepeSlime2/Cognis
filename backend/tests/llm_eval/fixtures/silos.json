@@ -1,0 +1,66 @@
+{
+  "window": {
+    "from": "2026-09-01",
+    "to": "2026-09-14",
+    "label": "Sprint 3 - Silos e Subgrupos"
+  },
+  "team": {
+    "active_members": 6,
+    "density": 0.35,
+    "modularity": 0.48,
+    "completion_rate": 0.70,
+    "late_rate": 0.12,
+    "bus_factor": 2
+  },
+  "signals": [
+    {
+      "id": "S1",
+      "code": "SILOS",
+      "severity": "high",
+      "subject": "Equipe",
+      "evidence": [
+        {
+          "metric_id": "graph.modularity",
+          "value": 0.48
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "code": "CROSS_COMMUNITY_LOW",
+      "severity": "medium",
+      "subject": "Equipe",
+      "evidence": [
+        {
+          "metric_id": "team.cross_community_share",
+          "value": 0.08
+        }
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "id": "M1",
+      "metric_id": "graph.modularity",
+      "value": 0.48
+    },
+    {
+      "id": "M2",
+      "metric_id": "team.cross_community_share",
+      "value": 0.08
+    },
+    {
+      "id": "M3",
+      "metric_id": "graph.density",
+      "value": 0.35
+    },
+    {
+      "id": "M4",
+      "metric_id": "flow.completion_rate",
+      "value": 0.70
+    }
+  ],
+  "limits": [
+    "duas comunidades distintas identificadas entre backend e frontend"
+  ]
+}

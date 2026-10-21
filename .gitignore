@@ -17,6 +17,7 @@ __pycache__/
 dist
 dist-ssr
 *.local
+storage/
 
 # Editor directories and files
 .vscode/*

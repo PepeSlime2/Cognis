@@ -1,0 +1,45 @@
+{
+  "window": {
+    "from": "2026-09-01",
+    "to": "2026-09-14",
+    "label": "Sprint 3 - Dados Insuficientes"
+  },
+  "team": {
+    "active_members": 2,
+    "density": 0.10,
+    "modularity": 0.0,
+    "completion_rate": 0.25,
+    "late_rate": 0.0,
+    "bus_factor": 1
+  },
+  "signals": [
+    {
+      "id": "S1",
+      "code": "INSUFFICIENT_DATA",
+      "severity": "info",
+      "subject": "Equipe",
+      "evidence": [
+        {
+          "metric_id": "flow.completion_rate",
+          "value": 0.25
+        }
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "id": "M1",
+      "metric_id": "graph.density",
+      "value": 0.10
+    },
+    {
+      "id": "M2",
+      "metric_id": "flow.completion_rate",
+      "value": 0.25
+    }
+  ],
+  "limits": [
+    "equipe com menos de 3 pessoas ativas no período",
+    "amostra insuficiente para métricas avançadas de fluxo e colaboração"
+  ]
+}

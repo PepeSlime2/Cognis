@@ -1,0 +1,73 @@
+{
+  "window": {
+    "from": "2026-09-01",
+    "to": "2026-09-14",
+    "label": "Sprint 3 - Gargalo de Review"
+  },
+  "team": {
+    "active_members": 5,
+    "density": 0.45,
+    "modularity": 0.22,
+    "completion_rate": 0.65,
+    "late_rate": 0.20,
+    "bus_factor": 2
+  },
+  "signals": [
+    {
+      "id": "S1",
+      "code": "REVIEW_CONCENTRATION",
+      "severity": "high",
+      "subject": "Bruno",
+      "evidence": [
+        {
+          "metric_id": "team.review_concentration",
+          "value": 0.68
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "code": "PR_REVIEW_DELAY",
+      "severity": "medium",
+      "subject": "Equipe",
+      "evidence": [
+        {
+          "metric_id": "flow.pr_time_to_first_review",
+          "value": 42.5
+        }
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "id": "M1",
+      "metric_id": "graph.betweenness",
+      "subject": "Bruno",
+      "value": 0.58
+    },
+    {
+      "id": "M2",
+      "metric_id": "flow.bottleneck_risk",
+      "subject": "Bruno",
+      "value": 0.75
+    },
+    {
+      "id": "M3",
+      "metric_id": "flow.pr_time_to_first_review",
+      "value": 42.5
+    },
+    {
+      "id": "M4",
+      "metric_id": "flow.completion_rate",
+      "value": 0.65
+    },
+    {
+      "id": "M5",
+      "metric_id": "flow.late_rate",
+      "value": 0.20
+    }
+  ],
+  "limits": [
+    "tempo até primeiro review acima da média histórica da equipe"
+  ]
+}

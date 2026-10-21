@@ -205,10 +205,12 @@ def validate_analysis_section(
                 passed=False,
                 violations=[f"Estrutura incompatível com o schema AnalysisSection: {err_details}"],
             )
+    elif isinstance(raw_output, AnalysisSection):
+        parsed_section = raw_output
     else:
         return ValidationResult(
             passed=False,
-            violations=["Tipo de saída inválido para validação (deve ser str JSON ou dict)"],
+            violations=["Tipo de saída inválido para validação (deve ser str JSON, dict ou AnalysisSection)"],
         )
 
     # 2. Validar referências (refs de evidências)
@@ -280,7 +282,8 @@ def validate_analysis_section(
     # 4.2 Validação de nomes compostos alucinados (ex: 'Roberto Silva', 'Mariana Souza')
     compound_name_pattern = re.compile(r"\b([A-Z][a-zÀ-ÿ]{2,}\s+[A-Z][a-zÀ-ÿ]{2,})\b")
     technical_compound_terms = {
-        "pull request", "lead time", "cycle time", "sprint review", "code review",
+        "pull request", "pull requests", "lead time", "cycle time", "sprint review",
+        "code review", "code reviews", "bus factor", "page rank", "pagerank",
         "centralização freeman", "centralizacao freeman", "fator ônibus", "fator onibus",
         "fator de", "rede de", "taxa de", "risco de", "tempo de", "tempo médio",
         "dados de", "membros ativos", "pontos de", "visão geral", "visao geral",

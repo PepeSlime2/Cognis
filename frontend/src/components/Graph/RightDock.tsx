@@ -4,6 +4,7 @@ import { faXmark, faLightbulb, faCircleInfo } from '@fortawesome/free-solid-svg-
 import type { GraphSelection } from './types'
 import type { MetricCatalogEntry, MetricResult, Signal } from '../../api/client'
 import SignalsPanel from '../Insights/SignalsPanel'
+import AnalysisPanel from '../Insights/AnalysisPanel'
 import styles from './rightDock.module.css'
 
 const nodeTypeLabels: Record<string, string> = {
@@ -30,6 +31,8 @@ type RightDockProps = {
   onRetrySignals?: () => void
   selectedSignalId?: string | null
   onSignalClick?: (signal: Signal) => void
+  projectId?: string
+  windowVal?: string
 }
 
 const RightDock = ({
@@ -46,19 +49,16 @@ const RightDock = ({
   onRetrySignals,
   selectedSignalId,
   onSignalClick,
+  projectId = '',
+  windowVal = '30d',
 }: RightDockProps) => {
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
-  const [aiGenerating, setAiGenerating] = useState(false)
-  const [aiMessage, setAiMessage] = useState<string | null>(null)
+  const [insightsSubTab, setInsightsSubTab] = useState<'signals' | 'analysis'>('signals')
 
   if (!isOpen) return null
 
   const handleGenerateAi = () => {
-    setAiGenerating(true)
-    setTimeout(() => {
-      setAiGenerating(false)
-      setAiMessage('Análise concluída: Grafo balanceado com forte colaboração em pull requests.')
-    }, 1500)
+    setInsightsSubTab('analysis')
   }
 
   // Contagem dinâmica de signals com severidade alta
@@ -293,8 +293,20 @@ const RightDock = ({
               </>
             )}
           </>
+        ) : insightsSubTab === 'analysis' ? (
+          /* Aba Insights: Análise com IA (SPEC §9.8, §12.4.1) */
+          <AnalysisPanel
+            projectId={projectId}
+            windowVal={windowVal}
+            selectedPersonUid={
+              selection?.kind === 'node' && selection.data.type === 'person'
+                ? selection.data.id
+                : null
+            }
+            onBackToSignals={() => setInsightsSubTab('signals')}
+          />
         ) : (
-          /* Aba Insights */
+          /* Aba Insights: Signals determinísticos e riscos (SPEC §8, §12.5) */
           <SignalsPanel
             signals={signals}
             isLoading={signalsLoading}
@@ -303,8 +315,6 @@ const RightDock = ({
             selectedSignalId={selectedSignalId}
             onSignalClick={onSignalClick}
             onGenerateAi={handleGenerateAi}
-            aiGenerating={aiGenerating}
-            aiMessage={aiMessage}
           />
         )}
       </div>
