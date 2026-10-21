@@ -25,6 +25,34 @@ def get_metrics_catalog():
     return get_catalog_dict()
 
 
+def _resolve_window(
+    project: Project,
+    db: Session,
+    from_date: str | None,
+    to_date: str | None,
+    sprint_id: str | None,
+):
+    if sprint_id:
+        sprint = db.execute(
+            select(Sprint).where(Sprint.id == sprint_id, Sprint.project_id == project.id)
+        ).scalar_one_or_none()
+        if sprint is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Sprint não encontrada",
+            )
+        return window_from_sprint(sprint, timezone=project.timezone)
+    if from_date and to_date:
+        try:
+            return parse_window(from_date, to_date, timezone=project.timezone)
+        except ValueError as err:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(err),
+            ) from err
+    return default_window(timezone=project.timezone)
+
+
 @router.get("/projects/{pid}/metrics")
 def get_project_metrics(
     pid: str,
@@ -38,29 +66,7 @@ def get_project_metrics(
 ):
     """Calcula ou recupera do snapshot cache o MetricsBundle do projeto (SPEC §7.5)."""
     project = repository.get_project_for_user(db, pid, user_id)
-
-    # Resolução da janela temporal
-    if sprint_id:
-        sprint = db.execute(
-            select(Sprint).where(Sprint.id == sprint_id, Sprint.project_id == project.id)
-        ).scalar_one_or_none()
-        if sprint is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Sprint não encontrada",
-            )
-        window = window_from_sprint(sprint, timezone=project.timezone)
-    elif from_date and to_date:
-        try:
-            window = parse_window(from_date, to_date, timezone=project.timezone)
-        except ValueError as err:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(err),
-            ) from err
-    else:
-        window = default_window(timezone=project.timezone)
-
+    window = _resolve_window(project, db, from_date, to_date, sprint_id)
     bundle = get_metrics_bundle(
         db=db,
         neo4j_driver=neo4j_driver,
@@ -69,3 +75,27 @@ def get_project_metrics(
         force_refresh=refresh,
     )
     return bundle
+
+
+@router.get("/projects/{pid}/signals")
+def get_project_signals(
+    pid: str,
+    from_date: str | None = Query(None, alias="from"),
+    to_date: str | None = Query(None, alias="to"),
+    sprint_id: str | None = Query(None),
+    refresh: bool = Query(False),
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db_session),
+    neo4j_driver: Driver = Depends(get_neo4j_driver),
+):
+    """Retorna a lista de signals determinísticos detectados para a janela (SPEC §8 e §11)."""
+    project = repository.get_project_for_user(db, pid, user_id)
+    window = _resolve_window(project, db, from_date, to_date, sprint_id)
+    bundle = get_metrics_bundle(
+        db=db,
+        neo4j_driver=neo4j_driver,
+        project=project,
+        window=window,
+        force_refresh=refresh,
+    )
+    return bundle.get("signals", [])

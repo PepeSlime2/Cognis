@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark, faLightbulb, faCircleInfo } from '@fortawesome/free-solid-svg-icons'
 import type { GraphSelection } from './types'
-import type { MetricCatalogEntry, MetricResult } from '../../api/client'
+import type { MetricCatalogEntry, MetricResult, Signal } from '../../api/client'
+import SignalsPanel from '../Insights/SignalsPanel'
 import styles from './rightDock.module.css'
 
 const nodeTypeLabels: Record<string, string> = {
@@ -23,6 +24,12 @@ type RightDockProps = {
   selection: GraphSelection
   metrics?: Record<string, MetricResult>
   catalog?: MetricCatalogEntry[]
+  signals?: Signal[]
+  signalsLoading?: boolean
+  signalsError?: boolean
+  onRetrySignals?: () => void
+  selectedSignalId?: string | null
+  onSignalClick?: (signal: Signal) => void
 }
 
 const RightDock = ({
@@ -33,6 +40,12 @@ const RightDock = ({
   selection,
   metrics,
   catalog,
+  signals = [],
+  signalsLoading = false,
+  signalsError = false,
+  onRetrySignals,
+  selectedSignalId,
+  onSignalClick,
 }: RightDockProps) => {
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
   const [aiGenerating, setAiGenerating] = useState(false)
@@ -48,8 +61,8 @@ const RightDock = ({
     }, 1500)
   }
 
-  // Contagem de signals high
-  const highSignalsCount = 1
+  // Contagem dinâmica de signals com severidade alta
+  const highSignalsCount = signals.filter((s) => s.severity === 'high').length
 
   return (
     <aside className={styles.dock} aria-label="Painel de detalhes e insights">
@@ -282,43 +295,17 @@ const RightDock = ({
           </>
         ) : (
           /* Aba Insights */
-          <div className={styles.insightsContainer}>
-            <button
-              type="button"
-              className={styles.generateAiBtn}
-              onClick={handleGenerateAi}
-              disabled={aiGenerating}
-            >
-              <FontAwesomeIcon icon={faLightbulb} />
-              <span>{aiGenerating ? 'Gerando Análise com IA…' : 'Gerar Análise com IA'}</span>
-            </button>
-
-            {aiMessage && (
-              <div className={styles.insightCard} role="status">
-                <span className={styles.insightTitle}>Diagnóstico LLM</span>
-                <p className={styles.insightDesc}>{aiMessage}</p>
-              </div>
-            )}
-
-            <div className={`${styles.insightCard} ${styles.insightCardHigh}`}>
-              <div className={styles.insightHeader}>
-                <span className={styles.insightTitle}>Concentração de Revisões</span>
-                <span className={styles.badge}>Alta</span>
-              </div>
-              <p className={styles.insightDesc}>
-                Poucos membros estão concentrando mais de 60% das aprovações de Pull Requests.
-              </p>
-            </div>
-
-            <div className={styles.insightCard}>
-              <div className={styles.insightHeader}>
-                <span className={styles.insightTitle}>Módulos Desconectados</span>
-              </div>
-              <p className={styles.insightDesc}>
-                Nenhum módulo isolado detectado na janela atual.
-              </p>
-            </div>
-          </div>
+          <SignalsPanel
+            signals={signals}
+            isLoading={signalsLoading}
+            isError={signalsError}
+            onRetry={onRetrySignals}
+            selectedSignalId={selectedSignalId}
+            onSignalClick={onSignalClick}
+            onGenerateAi={handleGenerateAi}
+            aiGenerating={aiGenerating}
+            aiMessage={aiMessage}
+          />
         )}
       </div>
     </aside>

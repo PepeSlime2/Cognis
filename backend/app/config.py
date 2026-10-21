@@ -72,9 +72,22 @@ class AppConfig:
         return origins
 
 
+@dataclass(frozen=True)
+class OllamaConfig:
+    host: str = os.getenv("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+    model: str = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+    num_ctx: int = int(os.getenv("OLLAMA_NUM_CTX", "8192"))
+    temperature: float = float(os.getenv("OLLAMA_TEMPERATURE", "0.2"))
+    timeout_s: float = float(os.getenv("OLLAMA_TIMEOUT_S", "300.0"))
+    seed: int = int(os.getenv("OLLAMA_SEED", "42"))
+    keep_alive: str = os.getenv("OLLAMA_KEEP_ALIVE", "10m")
+
+
 neo4j_config = Neo4jConfig()
 github_oauth = GitHubOAuthConfig()
 trello_oauth = TrelloOAuthConfig()
 auth_config = AuthConfig()
 app_config = AppConfig()
+ollama_config = OllamaConfig()
+
 

@@ -69,10 +69,10 @@ def test_auth_smoke(monkeypatch):
     with TestClient(
         main.app, headers={"Origin": config.app_config.frontend_url}
     ) as client:
-        assert client.get("/health").json() == {
-            "status": "ok",
-            "neo4j": "connected",
-        }
+        health_data = client.get("/health").json()
+        assert health_data["status"] == "ok"
+        assert health_data["neo4j"] == "connected"
+        assert "ollama" in health_data
         registered = client.post(
             "/auth/register",
             json={

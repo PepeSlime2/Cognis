@@ -362,9 +362,10 @@ def seed_demo(
         add_commit(f"sha_auth_diego_{i:02d}", "diego", ts, "api/auth", 20, 2)
         add_commit(f"sha_core_ana_{i:02d}", "ana", ts, "api/core", 40, 10)
         add_commit(f"sha_core_bruno_{i:02d}", "bruno", ts, "api/core", 35, 8)
+        add_commit(f"sha_core_diego_{i:02d}", "diego", ts, "api/core", 30, 6)
 
     # Frontend: Carla e Elisa alteram web/components e web/pages
-    for i in range(1, 5):
+    for i in range(1, 3):
         ts = dt.datetime(2026, 1, 9 + i * 2, 15, 0, 0, tzinfo=dt.timezone.utc)
         add_commit(f"sha_comp_carla_{i:02d}", "carla", ts, "web/components", 50, 12)
         add_commit(f"sha_comp_elisa_{i:02d}", "elisa", ts, "web/components", 45, 8)
@@ -496,14 +497,61 @@ def seed_demo(
     # diego: 2 reviews
     # elisa: 2 reviews
     # carla: 2 reviews
-    # total = 20 reviews. Bruno share = 12 / 20 = 0.60 (60%)!
-
     writer.upsert_nodes(DEMO_PROJECT_ID, "PullRequest", pr_nodes)
     writer.upsert_nodes(DEMO_PROJECT_ID, "Review", review_nodes)
     writer.upsert_relationships(DEMO_PROJECT_ID, "Account", "ABRIU", "PullRequest", abriu_rels)
     writer.upsert_relationships(DEMO_PROJECT_ID, "PullRequest", "NO_REPOSITORIO", "Repo", pr_repo_rels)
     writer.upsert_relationships(DEMO_PROJECT_ID, "Account", "ENVIOU", "Review", enviou_rels)
     writer.upsert_relationships(DEMO_PROJECT_ID, "Review", "SOBRE", "PullRequest", sobre_rels)
+
+    # Comentários plantados:
+    # 1. Frontend comunicação interna frequente entre Carla e Elisa (comunidade frontend coesa)
+    # 2. Carla comenta no PR #1 da Ana (dúvida de integração frontend com API)
+    # 3. Elisa comenta no PR #4 do Diego (dúvida sobre payload do gateway)
+    # Isso conecta levemente Carla e Elisa ao backend (poucas arestas entre grupos, SPEC §15.2),
+    # garantindo dc >= 2 para Carla e Elisa (apenas Felipe com dc <= 1, ISOLATED_MEMBER),
+    # enquanto preserva SILOS (modularity > 0.40, cross_community_share < 0.15).
+    comment_nodes = []
+    comentou_rels = []
+    sobre_rels_comment = []
+    comment_counter = 0
+
+    def add_comment(author_handle: str, target_pr_num: int, created_at: dt.datetime):
+        nonlocal comment_counter
+        comment_counter += 1
+        c_uid = make_uid(DEMO_PROJECT_ID, "comment", DEMO_PROVIDER, str(comment_counter))
+        c_acc = make_uid(DEMO_PROJECT_ID, "account", DEMO_PROVIDER, author_handle)
+        t_pr_uid = make_uid(DEMO_PROJECT_ID, "pr", DEMO_PROVIDER, str(target_pr_num))
+
+        comment_nodes.append({
+            "uid": c_uid,
+            "project_id": DEMO_PROJECT_ID,
+            "created_at": created_at,
+        })
+        comentou_rels.append({
+            "source_uid": c_acc,
+            "target_uid": c_uid,
+            "properties": {},
+        })
+        sobre_rels_comment.append({
+            "source_uid": c_uid,
+            "target_uid": t_pr_uid,
+            "properties": {},
+        })
+
+    # Frontend interno (Carla <-> Elisa)
+    for i in range(3):
+        ts = dt.datetime(2026, 1, 16 + i * 3, 10, 0, 0, tzinfo=dt.timezone.utc)
+        add_comment("carla", 16, ts)
+        add_comment("elisa", 14, ts + dt.timedelta(hours=1))
+
+    # Pontes leves com backend (poucas arestas entre grupos)
+    add_comment("carla", 1, dt.datetime(2026, 1, 11, 10, 0, 0, tzinfo=dt.timezone.utc))
+    add_comment("elisa", 4, dt.datetime(2026, 1, 13, 10, 0, 0, tzinfo=dt.timezone.utc))
+
+    writer.upsert_nodes(DEMO_PROJECT_ID, "Comment", comment_nodes)
+    writer.upsert_relationships(DEMO_PROJECT_ID, "Account", "COMENTOU", "Comment", comentou_rels)
+    writer.upsert_relationships(DEMO_PROJECT_ID, "Comment", "SOBRE", "PullRequest", sobre_rels_comment)
 
     # ==========================================
     # 8. Tarefas (Tasks) e Padrão de Atraso em Sprint 3

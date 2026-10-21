@@ -338,7 +338,7 @@ def load_facts_from_neo4j(
               AND NOT coalesce(c.is_merge, false)
             OPTIONAL MATCH (c)<-[:REALIZOU]-(acc:Account)<-[:TEM_CONTA]-(p:Person)
             RETURN coalesce(p.uid, acc.uid) AS person_uid,
-                   m.uid AS module_path,
+                   coalesce(m.path, m.uid) AS module_path,
                    c.sha AS commit_sha,
                    c.authored_at AS authored_at,
                    coalesce(c.additions, 0) AS additions,

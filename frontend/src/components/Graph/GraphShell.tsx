@@ -15,6 +15,7 @@ import {
   type ColumnMappingsResponse,
   type MetricCatalogEntry,
   type MetricsBundle,
+  type Signal,
 } from '../../api/client'
 import type { DockState, GraphSelection, GraphViewState } from './types'
 import GraphTopBar from './GraphTopBar'
@@ -181,6 +182,27 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
     enabled: Boolean(projectId),
   })
 
+  const signalsQuery = useQuery({
+    queryKey: ['projectSignals', projectId, viewState.window],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (viewState.window.startsWith('sprint:')) {
+        params.set('sprint_id', viewState.window.replace('sprint:', ''))
+      } else {
+        const days = parseInt(viewState.window.replace('d', ''), 10) || 30
+        const to = new Date()
+        const from = new Date()
+        from.setDate(to.getDate() - (days - 1))
+        params.set('from', from.toISOString().split('T')[0])
+        params.set('to', to.toISOString().split('T')[0])
+      }
+      return api.get<Signal[]>(`/projects/${projectId}/signals?${params}`)
+    },
+    enabled: Boolean(projectId),
+  })
+
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null)
+
   const [columnsModalOpen, setColumnsModalOpen] = useState(false)
   const [peopleModalOpen, setPeopleModalOpen] = useState(false)
   const [linksModalOpen, setLinksModalOpen] = useState(false)
@@ -192,6 +214,7 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
       await queryClient.invalidateQueries({ queryKey: ['projectGraph', projectId] })
       await queryClient.invalidateQueries({ queryKey: ['projectLatestRun', projectId] })
       await queryClient.invalidateQueries({ queryKey: ['projectMetrics', projectId] })
+      await queryClient.invalidateQueries({ queryKey: ['projectSignals', projectId] })
     },
   })
 
@@ -304,10 +327,12 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           }
           updateDockState({ focusMode: false })
         }
+        setSelectedSignalId(null)
         setViewState((prev) => ({
           ...prev,
           selection: null,
           pathMode: false,
+          highlightIds: [],
         }))
         graph?.elements().unselect()
       }
@@ -352,6 +377,65 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
     }
   }, [updateDockState])
 
+  const handleClearHighlight = useCallback(() => {
+    setSelectedSignalId(null)
+    setViewState((prev) => ({ ...prev, highlightIds: [] }))
+  }, [])
+
+  const handleSignalClick = useCallback(
+    (signal: Signal) => {
+      if (selectedSignalId === signal.id) {
+        // Toggle off destaque
+        setSelectedSignalId(null)
+        setViewState((prev) => ({ ...prev, highlightIds: [] }))
+        return
+      }
+
+      setSelectedSignalId(signal.id)
+
+      const nodes = graphQuery.data?.elements.nodes ?? []
+      let targetIds: string[] = []
+
+      if (signal.subject.type === 'person') {
+        targetIds = nodes
+          .filter(
+            (n) =>
+              n.data.id === signal.subject.id ||
+              n.data.label.toLowerCase() === signal.subject.label.toLowerCase(),
+          )
+          .map((n) => n.data.id)
+      } else if (signal.subject.type === 'module') {
+        targetIds = nodes
+          .filter(
+            (n) =>
+              n.data.type === 'module' &&
+              (n.data.id === signal.subject.id ||
+                n.data.label.toLowerCase().includes(signal.subject.id.toLowerCase()) ||
+                n.data.label.toLowerCase() === signal.subject.label.toLowerCase()),
+          )
+          .map((n) => n.data.id)
+      } else if (signal.subject.type === 'team') {
+        // Para sinais de equipe (ex. SILOS, TASK_CONCENTRATION), destaca as pessoas da equipe
+        targetIds = nodes.filter((n) => n.data.type === 'person').map((n) => n.data.id)
+      }
+
+      if (targetIds.length === 0) {
+        // Fallback: busca por id ou label
+        targetIds = nodes
+          .filter(
+            (n) =>
+              n.data.id.includes(signal.subject.id) ||
+              n.data.label.toLowerCase().includes(signal.subject.label.toLowerCase()),
+          )
+          .map((n) => n.data.id)
+      }
+
+      setViewState((prev) => ({ ...prev, highlightIds: targetIds }))
+      updateDockState({ rightOpen: true, rightTab: 'insights' })
+    },
+    [graphQuery.data?.elements.nodes, selectedSignalId, updateDockState],
+  )
+
   const handleSearchSubmit = () => {
     const term = viewState.query.trim().toLowerCase()
     if (!graph || !term) return
@@ -385,6 +469,7 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
   }
 
   const handleReset = () => {
+    setSelectedSignalId(null)
     setViewState((prev) => ({
       ...prev,
       sizeBy: 'degree',
@@ -395,6 +480,7 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
       query: '',
       pathMode: false,
       selection: null,
+      highlightIds: [],
     }))
     graph?.elements().unselect()
     graph?.fit()
@@ -606,7 +692,9 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
               sizeBy={viewState.sizeBy}
               colorBy={viewState.colorBy}
               metrics={metricsQuery.data?.metrics}
+              highlightIds={viewState.highlightIds}
               onSelectionChange={handleSelectionChange}
+              onClearHighlight={handleClearHighlight}
               onGraphReady={setGraph}
             />
             <GraphLegend />
@@ -624,6 +712,15 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           selection={viewState.selection}
           metrics={metricsQuery.data?.metrics}
           catalog={catalogQuery.data}
+          signals={signalsQuery.data ?? metricsQuery.data?.signals ?? []}
+          signalsLoading={signalsQuery.isLoading || (metricsQuery.isLoading && !signalsQuery.data)}
+          signalsError={signalsQuery.isError && !metricsQuery.data?.signals}
+          onRetrySignals={() => {
+            signalsQuery.refetch()
+            metricsQuery.refetch()
+          }}
+          selectedSignalId={selectedSignalId}
+          onSignalClick={handleSignalClick}
         />
       </div>
 

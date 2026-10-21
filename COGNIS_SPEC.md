@@ -1191,19 +1191,17 @@ Legenda de dependência: `→` precisa estar concluído antes.
 
 | Tarefa | Descrição | Aceite | Status |
 |---|---|---|---|
-| F6.1 | `signals.py` (§8) + templates PT-BR + `GET /signals` | o seed dispara exatamente os signals plantados (e nenhum espúrio) | pendente |
-| F6.2 | `SignalsPanel`: lista por severidade, destaque no grafo, avisos de dados insuficientes | clicar num signal destaca os nós envolvidos | pendente |
+| F6.1 | `signals.py` (§8) + templates PT-BR + `GET /signals` | o seed dispara exatamente os signals plantados (e nenhum espúrio) | feito |
+| F6.2 | `SignalsPanel`: lista por severidade, destaque no grafo, avisos de dados insuficientes | clicar num signal destaca os nós envolvidos | feito |
 
 > **Marco “produto utilizável sem IA”:** F0–F6 entregam grafo + métricas + riscos por regra. Se o tempo apertar, esta é a linha de segurança do TCC.
 
 ### F7 — IA local (L) → F6
 
-| Tarefa | Descrição | Aceite | Status |
-|---|---|---|---|
-| F7.1 | `client.py` (Ollama `/api/chat`, lock global, timeout) + `/health` com Ollama `[VERIFICAR format/schema]` | com Ollama ligado/desligado o `/health` reflete; erro de timeout tratado | pendente |
-| F7.2 | `facts_builder.py` (+ anonimização) e `schemas.py` | `facts` ≤ ~3k tokens; mapa de anonimização reversível só no servidor | pendente |
-| F7.3 | `validator.py` (§9.7) com testes (números/refs inventados reprovam) | 100% dos casos “maliciosos” de teste são pegos | pendente |
-| F7.4 | `pipeline.py`: seções, retry com feedback, fallback `templates.py`; tabela `analyses`; endpoints (§11) | com Ollama desligado, a análise sai por template e marca `source='template'` | pendente |
+| F7.1 | `client.py` (Ollama `/api/chat`, lock global, timeout) + `/health` com Ollama `[VERIFICAR format/schema]` | com Ollama ligado/desligado o `/health` reflete; erro de timeout tratado | feito |
+| F7.2 | `facts_builder.py` (+ anonimização) e `schemas.py` | `facts` ≤ ~3k tokens; mapa de anonimização reversível só no servidor | feito |
+| F7.3 | `validator.py` (§9.7) com testes (números/refs inventados reprovam) | 100% dos casos “maliciosos” de teste são pegos | feito |
+| F7.4 | `pipeline.py`: seções, retry com feedback, fallback `templates.py`; tabela `analyses`; endpoints (§11) | com Ollama desligado, a análise sai por template e marca `source='template'` | feito |
 | F7.5 | UI: `AnalysisPanel` (job, progresso, selo, “ver dados usados”, anonimizar) | texto de IA aparece com selo; números destacados batem com `facts` | pendente |
 | F7.6 | `tests/llm_eval/` (§9.9) e rodada de avaliação | planilha de resultados gerada | pendente |
 

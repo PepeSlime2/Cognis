@@ -14,6 +14,7 @@ from ..graph.facts import GraphFacts, load_facts_from_neo4j
 from ..metrics.flow_metrics import compute_all_flow_metrics
 from ..metrics.graph_metrics import compute_all_graph_metrics
 from ..metrics.person_metrics import compute_all_person_metrics
+from ..metrics.signals import detect_signals
 from ..metrics.team_metrics import compute_all_team_metrics
 from ..metrics.windows import TimeWindow
 
@@ -178,6 +179,16 @@ def get_metrics_bundle(
     }
     metrics_payload = {k: v.to_dict() for k, v in all_metrics.items()}
 
+    # 4. Detectar signals determinísticos (SPEC §8, F6.1)
+    signals = detect_signals(
+        metrics=all_metrics,
+        facts=facts,
+        collab=collab,
+        window=window,
+        settings=effective_settings,
+    )
+    signals_payload = [s.to_dict() for s in signals]
+
     bundle: dict[str, Any] = {
         "project_id": project.id,
         "window": window.to_dict(),
@@ -186,7 +197,7 @@ def get_metrics_bundle(
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "warnings": [],
         "metrics": metrics_payload,
-        "signals": [],  # Será populado na F6
+        "signals": signals_payload,
         "cached": False,
     }
 

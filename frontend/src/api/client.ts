@@ -297,8 +297,37 @@ export type MetricsBundle = {
   generated_at: string
   warnings: string[]
   metrics: Record<string, MetricResult>
-  signals: unknown[]
+  signals: Signal[]
   cached: boolean
+}
+
+export type SignalSeverity = 'info' | 'medium' | 'high'
+
+export type SignalSubject = {
+  type: 'person' | 'module' | 'team'
+  id: string
+  label: string
+}
+
+export type SignalEvidence = {
+  metric_id: string
+  value: unknown
+  unit: string
+}
+
+export type Signal = {
+  id: string
+  code: string
+  severity: SignalSeverity
+  title: string
+  message: string
+  subject: SignalSubject
+  evidence: SignalEvidence[]
+  window: {
+    from: string
+    to: string
+    [key: string]: unknown
+  }
 }
 
 export type Sprint = {

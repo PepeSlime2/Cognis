@@ -270,6 +270,44 @@ const graphStyle: StylesheetJson = [
       display: 'none',
     },
   },
+  {
+    selector: 'node.signal-highlighted',
+    style: {
+      width: 'mapData(size_metric, 0, 1, 46, 64)',
+      height: 'mapData(size_metric, 0, 1, 46, 64)',
+      'border-width': 3,
+      'border-color': '#f59e0b',
+      'border-opacity': 1,
+      'underlay-color': '#f59e0b',
+      'underlay-padding': '10px',
+      'underlay-opacity': 0.45,
+      'underlay-shape': 'ellipse',
+      'z-index': 999,
+      opacity: 1,
+    },
+  },
+  {
+    selector: 'edge.signal-highlighted',
+    style: {
+      width: 4.5,
+      'line-color': '#f59e0b',
+      'target-arrow-color': '#f59e0b',
+      opacity: 1,
+      'z-index': 998,
+    },
+  },
+  {
+    selector: 'node.faded-by-signal',
+    style: {
+      opacity: 0.18,
+    },
+  },
+  {
+    selector: 'edge.faded-by-signal',
+    style: {
+      opacity: 0.07,
+    },
+  },
 ]
 
 type GraphCanvasProps = {
@@ -281,7 +319,9 @@ type GraphCanvasProps = {
   sizeBy?: string
   colorBy?: string
   metrics?: Record<string, MetricResult>
+  highlightIds?: string[]
   onSelectionChange: (selection: GraphSelection) => void
+  onClearHighlight?: () => void
   onGraphReady: (graph: Core | null) => void
 }
 
@@ -307,12 +347,15 @@ const GraphCanvas = ({
   sizeBy = 'degree',
   colorBy = 'tipo',
   metrics,
+  highlightIds = [],
   onSelectionChange,
+  onClearHighlight,
   onGraphReady,
 }: GraphCanvasProps) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<Core | null>(null)
   const onSelectionChangeRef = useRef(onSelectionChange)
+  const onClearHighlightRef = useRef(onClearHighlight)
   const pathModeRef = useRef(pathMode)
   const selectedNodesForPathRef = useRef<string[]>([])
 
@@ -323,7 +366,8 @@ const GraphCanvas = ({
 
   useEffect(() => {
     onSelectionChangeRef.current = onSelectionChange
-  }, [onSelectionChange])
+    onClearHighlightRef.current = onClearHighlight
+  }, [onSelectionChange, onClearHighlight])
 
   useEffect(() => {
     pathModeRef.current = pathMode
@@ -389,6 +433,7 @@ const GraphCanvas = ({
     graph.on('tap', (event) => {
       if (event.target === graph) {
         onSelectionChangeRef.current(null)
+        onClearHighlightRef.current?.()
       }
     })
 
@@ -582,6 +627,35 @@ const GraphCanvas = ({
       syncNodeSizesWithZoom(graph)
     })
   }, [sizeBy, colorBy, metrics])
+
+  // 3. Reagir a highlightIds (destaque de signals)
+  useEffect(() => {
+    const graph = graphRef.current
+    if (!graph) return
+
+    graph.batch(() => {
+      graph.elements().removeClass('signal-highlighted faded-by-signal')
+      if (highlightIds && highlightIds.length > 0) {
+        const targetNodes = graph.nodes().filter((node) => highlightIds.includes(node.id()))
+        if (targetNodes.length > 0) {
+          graph.elements().addClass('faded-by-signal')
+          targetNodes.removeClass('faded-by-signal').addClass('signal-highlighted')
+          targetNodes.connectedEdges().forEach((edge) => {
+            if (highlightIds.includes(edge.source().id()) && highlightIds.includes(edge.target().id())) {
+              edge.removeClass('faded-by-signal').addClass('signal-highlighted')
+            }
+          })
+          graph.animate({
+            fit: {
+              eles: targetNodes,
+              padding: 60,
+            },
+            duration: 400,
+          })
+        }
+      }
+    })
+  }, [highlightIds])
 
 
   return (
