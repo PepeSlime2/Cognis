@@ -225,3 +225,60 @@
   font-size: 13px;
   font-style: italic;
 }
+
+.stateCard {
+  background: rgba(20, 16, 56, 0.6);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  border-radius: 10px;
+  padding: 48px 24px;
+  text-align: center;
+  color: #94a3b8;
+  margin-bottom: 32px;
+}
+
+.stateTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin-bottom: 8px;
+}
+
+.errorCard {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 10px;
+  padding: 32px 24px;
+  text-align: center;
+  color: #fca5a5;
+  margin-bottom: 32px;
+}
+
+.errorTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f87171;
+  margin-bottom: 8px;
+}
+
+.retryBtn {
+  margin-top: 16px;
+  background: #8b5cf6;
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.retryBtn:hover {
+  background: #7c3aed;
+}
+
+.retryBtn:focus-visible {
+  outline: 2px solid #c084fc;
+  outline-offset: 2px;
+}
+

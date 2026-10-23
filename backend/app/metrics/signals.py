@@ -672,14 +672,15 @@ def detect_signals(
     # =========================================================================
     collab_drop_thresh = thresholds.get("collab_drop_pct", 0.30)
     evo_vals = _get_metric_val(metrics, "team.evolution")
-    if evo_vals and isinstance(evo_vals, dict) and "delta" in evo_vals:
-        drop_pct = evo_vals["delta"].get("density_drop_pct", 0.0)
+    if evo_vals and isinstance(evo_vals, dict) and evo_vals.get("delta"):
+        delta = evo_vals["delta"]
+        drop_pct = delta.get("density_drop_pct", 0.0)
         if drop_pct >= collab_drop_thresh:
             code = "COLLAB_DROP"
             ctx = {
                 "drop_pct": drop_pct,
-                "prev_intensity": evo_vals["delta"].get("prev_weight_per_person", 0.0),
-                "curr_intensity": evo_vals["delta"].get("curr_weight_per_person", 0.0),
+                "prev_intensity": delta.get("prev_weight_per_person", 0.0),
+                "curr_intensity": delta.get("curr_weight_per_person", 0.0),
             }
             detected.append(
                 Signal(

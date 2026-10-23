@@ -10,5 +10,5 @@ def create_neo4j_driver() -> Driver:
     )
 
 
-def get_neo4j_driver(request: Request) -> Driver:
-    return request.app.state.neo4j_driver
+def get_neo4j_driver(request: Request) -> Driver | None:
+    return getattr(request.app.state, "neo4j_driver", None)

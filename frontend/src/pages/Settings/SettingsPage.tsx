@@ -50,6 +50,8 @@ function SettingsPage() {
   const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
   const [connectingProvider, setConnectingProvider] = useState<'github' | 'trello' | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const sessionQuery = useQuery({
     queryKey: sessionQueryKey,
@@ -545,6 +547,81 @@ function SettingsPage() {
               Salvar Mapeamento de Colunas
             </button>
           </div>
+        </section>
+      )}
+
+      {selectedProjectId && projectQuery.data && (
+        <section className={`${styles.panel} ${styles.dangerPanel}`}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2 className={styles.dangerTitle}>Zona de Perigo — Exclusão de Projeto (LGPD)</h2>
+              <p className={styles.helper}>
+                Em conformidade com a LGPD (Direito à Eliminação dos Dados Pessoais), a exclusão apaga
+                permanentemente todos os dados vinculados a este projeto.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.dangerNotice}>
+            <strong>Atenção:</strong> Esta ação é irreversível. Serão apagados definitivamente o grafo de
+            colaboração no Neo4j, todos os relatórios gerados (HTML, DOCX, PDF), snapshots de métricas,
+            análises de IA, histórico de sincronizações e configurações de fontes.
+          </div>
+
+          {!showDeleteConfirm ? (
+            <div className={styles.saveRow}>
+              <button
+                className={styles.dangerButton}
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                Excluir projeto permanentemente
+              </button>
+            </div>
+          ) : (
+            <div className={styles.deleteConfirmBox}>
+              <p>
+                Tem certeza de que deseja excluir permanentemente o projeto{' '}
+                <strong>{projectQuery.data.name}</strong> e todos os seus dados?
+              </p>
+              <div className={styles.deleteActions}>
+                <button
+                  className={styles.dangerButtonConfirm}
+                  type="button"
+                  disabled={deleting}
+                  onClick={async () => {
+                    setDeleting(true)
+                    setError('')
+                    setSuccess('')
+                    try {
+                      await api.delete(`/projects/${selectedProjectId}`)
+                      const deletedName = projectQuery.data.name
+                      setShowDeleteConfirm(false)
+                      setSearchParams({})
+                      await queryClient.invalidateQueries({ queryKey: projectsQueryKey })
+                      setSuccess(
+                        `Projeto "${deletedName}" e todos os dados vinculados (grafo e arquivos) foram excluídos permanentemente com sucesso (LGPD).`
+                      )
+                    } catch (err: unknown) {
+                      setError(err instanceof Error ? err.message : 'Erro ao excluir o projeto.')
+                    } finally {
+                      setDeleting(false)
+                    }
+                  }}
+                >
+                  {deleting ? 'Excluindo projeto e dados...' : 'Sim, excluir projeto definitivamente'}
+                </button>
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       )}
     </main>

@@ -78,19 +78,34 @@ const GraphTopBar = ({
           <FontAwesomeIcon icon={faBars} />
         </button>
 
-        <div className={styles.brand} onClick={() => navigate('/')} role="button" tabIndex={0} title="COGNIS">
+        <div
+          className={styles.brand}
+          onClick={() => navigate('/')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              navigate('/')
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Ir para a página inicial"
+          title="COGNIS"
+        >
           <img src={cognisLogo} alt="COGNIS" className={styles.brandLogo} />
         </div>
       </div>
 
       <div className={styles.centerSection}>
-        <div className={styles.layerChips} aria-label="Camadas do grafo">
+        <div className={styles.layerChips} role="group" aria-label="Camadas do grafo">
           {layers.map((l) => (
             <button
               key={l.id}
               type="button"
               className={`${styles.chipBtn} ${layer === l.id ? styles.chipActive : ''}`}
               onClick={() => onLayerChange(l.id)}
+              aria-pressed={layer === l.id}
+              aria-label={`Exibir camada: ${l.label}`}
             >
               {l.label}
             </button>

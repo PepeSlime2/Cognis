@@ -17,6 +17,7 @@ import {
   type ReportType,
   type ReportFormat,
   type ReportItem,
+  type PeopleResponse,
 } from '../../api/client'
 import styles from './reportDialog.module.css'
 
@@ -105,22 +106,26 @@ export const ReportDialog = ({
   }, [isOpen, onClose])
 
   // Busca lista de pessoas para o relatório individual
-  const { data: peopleData } = useQuery<PersonOption[]>({
+  const { data: peopleData } = useQuery<PeopleResponse | PersonOption[]>({
     queryKey: ['projectPeople', projectId],
-    queryFn: async () => {
-      const res = await api.get<{ people: PersonOption[] } | PersonOption[]>(
-        `/projects/${projectId}/people`,
-      )
-      if (Array.isArray(res)) return res
-      return res.people || []
-    },
+    queryFn: () => api.get<PeopleResponse>(`/projects/${projectId}/people`),
     enabled: isOpen && selectedType === 'individual',
   })
 
+  const peopleList: PersonOption[] = Array.isArray(peopleData)
+    ? peopleData
+    : Array.isArray((peopleData as unknown as PeopleResponse)?.people)
+    ? (peopleData as unknown as PeopleResponse).people.map((p) => ({
+        uid: p.person_uid,
+        name: p.display_name ?? p.person_uid,
+        excluded: p.excluded,
+      }))
+    : []
+
   const effectivePersonUid =
     selectedPersonUid ||
-    peopleData?.find((p) => !p.excluded)?.uid ||
-    peopleData?.[0]?.uid ||
+    peopleList.find((p) => !p.excluded)?.uid ||
+    peopleList[0]?.uid ||
     ''
 
   // Histórico de relatórios
@@ -284,8 +289,8 @@ export const ReportDialog = ({
                     value={effectivePersonUid}
                     onChange={(e) => setSelectedPersonUid(e.target.value)}
                   >
-                    {peopleData && peopleData.length > 0 ? (
-                      peopleData.map((p) => (
+                    {peopleList.length > 0 ? (
+                      peopleList.map((p) => (
                         <option key={p.uid} value={p.uid}>
                           {p.name} {p.excluded ? '(Excluído)' : ''}
                         </option>

@@ -449,4 +449,48 @@ export const reportsApi = {
     `/api/reports/${id}/download?format=${format}`,
 }
 
+export type PeriodDelta = {
+  density_drop_pct: number
+  prev_weight_per_person: number
+  curr_weight_per_person: number
+  delta_density: number
+  delta_modularity: number
+  delta_centralization: number
+  delta_active_people: number
+}
+
+export type EvolutionPeriod = {
+  label: string
+  from: string
+  to: string
+  density: number
+  modularity: number
+  centralization: number
+  components_count: number
+  active_people_count: number
+  reviews_per_pr: number
+  weight_per_person: number
+  delta: PeriodDelta | null
+}
+
+export type TeamEvolutionValues = {
+  granularity: 'sprint' | '14d'
+  periods: EvolutionPeriod[]
+  delta: PeriodDelta | null
+}
+
+export type TeamEvolutionResult = {
+  id: 'team.evolution'
+  scope: 'team'
+  status: 'ok' | 'insufficient_data'
+  unit: 'série'
+  values: TeamEvolutionValues
+  reason?: string
+}
+
+export const evolutionApi = {
+  getEvolution: (projectId: string, granularity: 'sprint' | '14d' = 'sprint'): Promise<TeamEvolutionResult> =>
+    api.get<TeamEvolutionResult>(`/projects/${projectId}/metrics/evolution?granularity=${granularity}`),
+}
+
 

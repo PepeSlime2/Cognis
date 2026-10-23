@@ -25,6 +25,7 @@ import LeftDock from './LeftDock'
 import RightDock from './RightDock'
 import GraphCanvas from './GraphCanvas'
 import GraphLegend from './GraphLegend'
+import { PeriodCompareBar } from './PeriodCompareBar'
 import { ColumnsModal } from '../ColumnsModal/ColumnsModal'
 import { PeopleModal } from '../Identity/PeopleModal'
 import { LinksModal } from '../Identity/LinksModal'
@@ -204,6 +205,7 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
   })
 
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null)
+  const [compareMode, setCompareMode] = useState(false)
 
   const [columnsModalOpen, setColumnsModalOpen] = useState(false)
   const [peopleModalOpen, setPeopleModalOpen] = useState(false)
@@ -596,6 +598,8 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
           onExportPng={handleExportPng}
           fxLevel={viewState.fxLevel}
           onFxLevelChange={(fxLevel) => setViewState((prev) => ({ ...prev, fxLevel }))}
+          compareMode={compareMode}
+          onToggleCompareMode={() => setCompareMode((prev) => !prev)}
           onReset={handleReset}
           disabled={!graph}
         />
@@ -636,6 +640,16 @@ const GraphShell = ({ projectId, onLogout, connections = {} }: GraphShellProps) 
 
       {/* ZONA C: GraphCanvas (célula central 1fr × 1fr) */}
       <main className={styles.zoneCanvas} aria-label="Visualização do grafo">
+        {/* Barra de comparação de períodos (lado a lado / alternância animada) */}
+        {compareMode && (
+          <PeriodCompareBar
+            projectId={projectId}
+            currentWindow={viewState.window}
+            onWindowChange={(window) => setViewState((prev) => ({ ...prev, window }))}
+            onClose={() => setCompareMode(false)}
+          />
+        )}
+
         {/* Aviso de truncamento */}
         {graphQuery.data?.truncated && (
           <div className={styles.truncatedBanner} role="status">

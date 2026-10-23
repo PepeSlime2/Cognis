@@ -179,6 +179,22 @@ def get_metrics_bundle(
     }
     metrics_payload = {k: v.to_dict() for k, v in all_metrics.items()}
 
+    # 3.5. Calcular evolução temporal se houver histórico (SPEC §7.4 C, F9.1)
+    try:
+        from .evolution import compute_team_evolution
+        evo_res = compute_team_evolution(
+            driver=neo4j_driver,
+            db=db,
+            project=project,
+            granularity="sprint",
+            min_edge_weight=float(effective_settings.get("min_edge_weight", 1.0)),
+            until_utc=window.end_utc,
+        )
+        all_metrics["team.evolution"] = evo_res
+        metrics_payload["team.evolution"] = evo_res
+    except Exception:
+        pass
+
     # 4. Detectar signals determinísticos (SPEC §8, F6.1)
     signals = detect_signals(
         metrics=all_metrics,

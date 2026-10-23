@@ -117,11 +117,12 @@ def seed_demo(
         session.add(project)
         session.commit()
 
-    # 3. Criar Sprints no SQLite (3 sprints de 14 dias cada)
+    # 3. Criar Sprints no SQLite (4 sprints de 14 dias cada)
     sprint_defs = [
         ("Sprint 1", "2026-01-05", "2026-01-18"),
         ("Sprint 2", "2026-01-19", "2026-02-01"),
         ("Sprint 3", "2026-02-02", "2026-02-15"),
+        ("Sprint 4", "2026-02-16", "2026-03-01"),
     ]
     created_sprints: list[Sprint] = []
     for idx, (s_name, s_from, s_to) in enumerate(sprint_defs, start=1):
@@ -681,6 +682,43 @@ def seed_demo(
             "started_at": started,
             "blocked": False,
             "labels": ["sprint3"],
+            "transitions_json": None,
+            "url": f"https://demo.local/cards/{t_id}",
+        })
+        responsavel_rels.append({
+            "source_uid": acc_uid,
+            "target_uid": t_uid,
+            "properties": {},
+        })
+        na_coluna_rels.append({
+            "source_uid": t_uid,
+            "target_uid": done_col_uid,
+            "properties": {},
+        })
+    # Tarefas Sprint 4: 4 tarefas pontuais atribuídas a ana, bruno, diego, carla no período [2026-02-16, 2026-03-01]
+    # Trabalho isolado sem reviews para demonstrar variação temporal e queda de colaboração (COLLAB_DROP)
+    s4_assignees = ["ana", "bruno", "diego", "carla"]
+    for i, assignee in enumerate(s4_assignees, start=1):
+        t_id = f"task-s4-{i:02d}"
+        t_uid = make_uid(DEMO_PROJECT_ID, "task", DEMO_PROVIDER, t_id)
+        acc_uid = make_uid(DEMO_PROJECT_ID, "account", DEMO_PROVIDER, assignee)
+        created = dt.datetime(2026, 2, 16, 9, 0, 0, tzinfo=dt.timezone.utc)
+        due = dt.datetime(2026, 2, 25, 18, 0, 0, tzinfo=dt.timezone.utc)
+        done = dt.datetime(2026, 2, 24, 16, 0, 0, tzinfo=dt.timezone.utc)
+        task_nodes.append({
+            "uid": t_uid,
+            "project_id": DEMO_PROJECT_ID,
+            "kind": "card",
+            "provider": DEMO_PROVIDER,
+            "title": f"Tarefa Sprint 4 #{i}",
+            "status_category": "done",
+            "created_at": created,
+            "updated_at": done,
+            "due_at": due,
+            "done_at": done,
+            "started_at": dt.datetime(2026, 2, 17, 9, 0, 0, tzinfo=dt.timezone.utc),
+            "blocked": False,
+            "labels": ["sprint4"],
             "transitions_json": None,
             "url": f"https://demo.local/cards/{t_id}",
         })

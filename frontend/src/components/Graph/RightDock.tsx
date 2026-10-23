@@ -67,10 +67,12 @@ const RightDock = ({
   return (
     <aside className={styles.dock} aria-label="Painel de detalhes e insights">
       <div className={styles.dockHeader}>
-        <div className={styles.tabs} role="tablist">
+        <div className={styles.tabs} role="tablist" aria-label="Abas do painel lateral">
           <button
             type="button"
             role="tab"
+            id="tab-details"
+            aria-controls="panel-details"
             aria-selected={activeTab === 'details'}
             className={`${styles.tabBtn} ${activeTab === 'details' ? styles.activeTab : ''}`}
             onClick={() => onTabChange('details')}
@@ -82,6 +84,8 @@ const RightDock = ({
           <button
             type="button"
             role="tab"
+            id="tab-insights"
+            aria-controls="panel-insights"
             aria-selected={activeTab === 'insights'}
             className={`${styles.tabBtn} ${activeTab === 'insights' ? styles.activeTab : ''}`}
             onClick={() => onTabChange('insights')}
@@ -96,14 +100,19 @@ const RightDock = ({
           type="button"
           className={styles.closeBtn}
           onClick={onClose}
-          aria-label="Fechar painel direito"
+          aria-label="Fechar painel lateral"
           title="Fechar painel direito (])"
         >
           <FontAwesomeIcon icon={faXmark} />
         </button>
       </div>
 
-      <div className={styles.dockBody}>
+      <div
+        className={styles.dockBody}
+        role="tabpanel"
+        id={activeTab === 'details' ? 'panel-details' : 'panel-insights'}
+        aria-labelledby={activeTab === 'details' ? 'tab-details' : 'tab-insights'}
+      >
         {activeTab === 'details' ? (
           <>
             {!selection ? (

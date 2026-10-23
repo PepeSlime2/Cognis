@@ -47,6 +47,8 @@ export const WindowPicker = ({
             type="button"
             className={`${styles.chipBtn} ${windowVal === w.id ? styles.chipActive : ''}`}
             onClick={() => onWindowChange(w.id)}
+            aria-pressed={windowVal === w.id}
+            aria-label={`Janela de ${w.label}`}
           >
             {w.label}
           </button>

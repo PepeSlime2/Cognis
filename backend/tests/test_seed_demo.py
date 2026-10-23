@@ -54,10 +54,11 @@ def test_seed_demo_executes_and_creates_project(neo4j_driver, db_session):
             select(Sprint).where(Sprint.project_id == DEMO_PROJECT_ID).order_by(Sprint.name)
         ).all()
     )
-    assert len(sprints) == 3
+    assert len(sprints) == 4
     assert sprints[0].name == "Sprint 1"
     assert sprints[1].name == "Sprint 2"
     assert sprints[2].name == "Sprint 3"
+    assert sprints[3].name == "Sprint 4"
 
     # 2. Padrão plantado 1: Bruno dá ~60% dos reviews
     assert stats["total_reviews"] == 20

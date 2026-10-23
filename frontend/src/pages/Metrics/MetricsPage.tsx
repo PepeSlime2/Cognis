@@ -16,6 +16,7 @@ import {
   type MetricsBundle,
 } from '../../api/client'
 import { WindowPicker } from '../../components/WindowPicker/WindowPicker'
+import { EvolutionChart } from '../../components/Metrics/EvolutionChart'
 import styles from './metricsPage.module.css'
 
 export const MetricsPage = () => {
@@ -180,52 +181,85 @@ export const MetricsPage = () => {
           Métricas determinísticas calculadas em Python puro sobre grafos de colaboração e eventos de fluxo.
         </p>
 
-        {/* Categoria D: Fluxo e Risco */}
-        <section className={styles.categorySection}>
-          <h2 className={styles.categoryTitle}>
-            <FontAwesomeIcon icon={faWaveSquare} style={{ color: '#60a5fa' }} />
-            Fluxo e Risco do Projeto
-          </h2>
-          <div className={styles.grid}>
-            {renderMetricCard('flow.completion_rate')}
-            {renderMetricCard('flow.late_rate')}
-            {renderMetricCard('flow.lead_time')}
-            {renderMetricCard('flow.cycle_time')}
-            {renderMetricCard('flow.rework')}
-            {renderMetricCard('flow.pr_time_to_first_review')}
-            {renderMetricCard('flow.pr_time_to_merge')}
-            {renderMetricCard('flow.critical_dependencies')}
-          </div>
-        </section>
+        {projectId && (
+          <EvolutionChart
+            projectId={projectId}
+            onSelectPeriod={(periodParam) => setSelectedWindow(periodParam)}
+          />
+        )}
 
-        {/* Categoria C: Colaboração e Estrutura */}
-        <section className={styles.categorySection}>
-          <h2 className={styles.categoryTitle}>
-            <FontAwesomeIcon icon={faUsers} style={{ color: '#c084fc' }} />
-            Colaboração e Estrutura da Equipe
-          </h2>
-          <div className={styles.grid}>
-            {renderMetricCard('team.interaction_intensity')}
-            {renderMetricCard('team.knowledge_concentration')}
-            {renderMetricCard('team.activity_distribution')}
-            {renderMetricCard('team.review_coverage')}
-            {renderMetricCard('team.cross_community_share')}
+        {metricsQuery.isLoading ? (
+          <div className={styles.stateCard} aria-busy="true">
+            <p className={styles.stateTitle}>Calculando métricas do projeto...</p>
+            <p>Processando grafo NetworkX e eventos de fluxo para a janela selecionada.</p>
           </div>
-        </section>
+        ) : metricsQuery.isError ? (
+          <div className={styles.errorCard} role="alert">
+            <p className={styles.errorTitle}>Não foi possível carregar as métricas</p>
+            <p>{metricsQuery.error instanceof Error ? metricsQuery.error.message : 'Erro ao calcular o bundle de métricas.'}</p>
+            <button
+              type="button"
+              className={styles.retryBtn}
+              onClick={() => void metricsQuery.refetch()}
+            >
+              Tentar novamente
+            </button>
+          </div>
+        ) : Object.keys(metrics).length === 0 ? (
+          <div className={styles.stateCard}>
+            <p className={styles.stateTitle}>Nenhuma métrica disponível</p>
+            <p>Não há eventos registrados ou calculados para o período selecionado. Tente expandir a janela ou sincronizar o projeto.</p>
+          </div>
+        ) : (
+          <>
+            {/* Categoria D: Fluxo e Risco */}
+            <section className={styles.categorySection} aria-labelledby="cat-d-title">
+              <h2 id="cat-d-title" className={styles.categoryTitle}>
+                <FontAwesomeIcon icon={faWaveSquare} style={{ color: '#60a5fa' }} />
+                Fluxo e Risco do Projeto
+              </h2>
+              <div className={styles.grid}>
+                {renderMetricCard('flow.completion_rate')}
+                {renderMetricCard('flow.late_rate')}
+                {renderMetricCard('flow.lead_time')}
+                {renderMetricCard('flow.cycle_time')}
+                {renderMetricCard('flow.rework')}
+                {renderMetricCard('flow.pr_time_to_first_review')}
+                {renderMetricCard('flow.pr_time_to_merge')}
+                {renderMetricCard('flow.critical_dependencies')}
+              </div>
+            </section>
 
-        {/* Categoria A: Análise de Grafos */}
-        <section className={styles.categorySection}>
-          <h2 className={styles.categoryTitle}>
-            <FontAwesomeIcon icon={faDiagramProject} style={{ color: '#34d399' }} />
-            Estrutura e Topologia de Rede
-          </h2>
-          <div className={styles.grid}>
-            {renderMetricCard('graph.density')}
-            {renderMetricCard('graph.modularity')}
-            {renderMetricCard('graph.components')}
-            {renderMetricCard('graph.centralization')}
-          </div>
-        </section>
+            {/* Categoria C: Colaboração e Estrutura */}
+            <section className={styles.categorySection} aria-labelledby="cat-c-title">
+              <h2 id="cat-c-title" className={styles.categoryTitle}>
+                <FontAwesomeIcon icon={faUsers} style={{ color: '#c084fc' }} />
+                Colaboração e Estrutura da Equipe
+              </h2>
+              <div className={styles.grid}>
+                {renderMetricCard('team.interaction_intensity')}
+                {renderMetricCard('team.knowledge_concentration')}
+                {renderMetricCard('team.activity_distribution')}
+                {renderMetricCard('team.review_coverage')}
+                {renderMetricCard('team.cross_community_share')}
+              </div>
+            </section>
+
+            {/* Categoria A: Análise de Grafos */}
+            <section className={styles.categorySection} aria-labelledby="cat-a-title">
+              <h2 id="cat-a-title" className={styles.categoryTitle}>
+                <FontAwesomeIcon icon={faDiagramProject} style={{ color: '#34d399' }} />
+                Estrutura e Topologia de Rede
+              </h2>
+              <div className={styles.grid}>
+                {renderMetricCard('graph.density')}
+                {renderMetricCard('graph.modularity')}
+                {renderMetricCard('graph.components')}
+                {renderMetricCard('graph.centralization')}
+              </div>
+            </section>
+          </>
+        )}
 
         <footer className={styles.footerNote}>
           Os indicadores descrevem padrões de colaboração e processo, não avaliam desempenho ou mérito individual.

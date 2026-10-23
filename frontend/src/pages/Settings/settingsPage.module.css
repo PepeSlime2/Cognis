@@ -438,6 +438,96 @@
   margin-top: 12px;
 }
 
+.dangerPanel {
+  border-color: rgba(200, 120, 89, 0.4);
+  background: rgba(200, 120, 89, 0.04);
+}
+
+.dangerPanel:hover {
+  border-color: var(--status-danger);
+}
+
+.dangerTitle {
+  color: var(--status-danger);
+}
+
+.dangerNotice {
+  margin: 16px 0;
+  padding: 14px 18px;
+  background: var(--status-danger-bg);
+  border: 1px solid rgba(200, 120, 89, 0.3);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.dangerButton {
+  background: transparent;
+  color: var(--status-danger);
+  border: 1px solid var(--status-danger);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dangerButton:hover:not(:disabled) {
+  background: var(--status-danger);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(200, 120, 89, 0.4);
+}
+
+.dangerButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deleteConfirmBox {
+  margin-top: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: rgba(200, 120, 89, 0.12);
+  border: 1px solid rgba(200, 120, 89, 0.4);
+}
+
+.deleteConfirmBox p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.deleteActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.dangerButtonConfirm {
+  background: var(--status-danger);
+  color: #ffffff;
+  border: 1px solid var(--status-danger);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dangerButtonConfirm:hover:not(:disabled) {
+  background: #b06548;
+  box-shadow: 0 0 14px rgba(200, 120, 89, 0.5);
+}
+
+.dangerButtonConfirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .visuallyHidden {
   position: absolute;
   width: 1px;

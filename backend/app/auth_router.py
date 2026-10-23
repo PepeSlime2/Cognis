@@ -23,7 +23,10 @@ import secrets
 from urllib.parse import urlencode
 
 import requests
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
+import threading
+import time
+from collections import defaultdict
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -38,6 +41,53 @@ from .security import create_session_jwt, decode_session_jwt, hash_password, ver
 from .trello_collector import get_authenticated_member as get_trello_member
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# Limitador de tentativas de login em memória (SPEC §13.1 item 5: 5 tentativas/min por IP+email)
+_login_attempts: dict[tuple[str, str], list[float]] = defaultdict(list)
+_login_lock = threading.Lock()
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_WINDOW_SECONDS = 60.0
+
+
+def _get_client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "127.0.0.1"
+
+
+def check_login_rate_limit(client_ip: str, email: str) -> None:
+    now = time.monotonic()
+    key = (client_ip, email.strip().lower())
+    with _login_lock:
+        attempts = [t for t in _login_attempts[key] if now - t < LOGIN_WINDOW_SECONDS]
+        _login_attempts[key] = attempts
+        if len(attempts) >= LOGIN_MAX_ATTEMPTS:
+            raise HTTPException(
+                status_code=429,
+                detail="Muitas tentativas de login. Aguarde um minuto antes de tentar novamente.",
+            )
+
+
+def record_failed_login(client_ip: str, email: str) -> None:
+    now = time.monotonic()
+    key = (client_ip, email.strip().lower())
+    with _login_lock:
+        attempts = [t for t in _login_attempts[key] if now - t < LOGIN_WINDOW_SECONDS]
+        attempts.append(now)
+        _login_attempts[key] = attempts
+
+
+def clear_failed_logins(client_ip: str, email: str) -> None:
+    key = (client_ip, email.strip().lower())
+    with _login_lock:
+        _login_attempts.pop(key, None)
+
+
+def reset_login_rate_limiter() -> None:
+    """Limpa o histórico de tentativas (usado em testes)."""
+    with _login_lock:
+        _login_attempts.clear()
 
 
 class RegisterIn(BaseModel):
@@ -79,17 +129,25 @@ def register(
 @router.post("/login")
 def login(
     body: LoginIn,
+    request: Request,
     response: Response,
     db_session: Session = Depends(get_db_session),
 ):
+    client_ip = _get_client_ip(request)
     email = body.email.strip().lower()
+
+    check_login_rate_limit(client_ip, email)
+
     user = db_session.scalar(select(User).where(User.email == email))
     if (
         user is None
         or user.password_hash is None
         or not verify_password(body.password, user.password_hash)
     ):
+        record_failed_login(client_ip, email)
         raise HTTPException(401, "Email ou senha inválidos")
+
+    clear_failed_logins(client_ip, email)
     _set_session_cookie(response, user.id)
     return {"user_id": user.id, "email": user.email, "name": user.name}
 

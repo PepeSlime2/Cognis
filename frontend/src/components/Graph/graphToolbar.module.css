@@ -47,13 +47,22 @@
 
 .controlSelect:focus {
   border-color: var(--accent-cyan);
-  outline: none;
+}
+
+.controlSelect:focus-visible {
+  outline: 2px solid var(--accent-purple-light, #c084fc);
+  outline-offset: 2px;
 }
 
 .rangeInput {
   width: 72px;
   accent-color: var(--accent-purple);
   cursor: pointer;
+}
+
+.rangeInput:focus-visible {
+  outline: 2px solid var(--accent-purple-light, #c084fc);
+  outline-offset: 2px;
 }
 
 .rangeOutput {
@@ -78,6 +87,11 @@
   cursor: pointer;
 }
 
+.checkboxInput:focus-visible {
+  outline: 2px solid var(--accent-purple-light, #c084fc);
+  outline-offset: 2px;
+}
+
 .toolBtn {
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
@@ -95,6 +109,11 @@
   background: rgba(30, 22, 90, 0.85);
   border-color: var(--accent-purple-light);
   color: #ffffff;
+}
+
+.toolBtn:focus-visible {
+  outline: 2px solid var(--accent-purple-light, #c084fc);
+  outline-offset: 2px;
 }
 
 .toolBtn:disabled {

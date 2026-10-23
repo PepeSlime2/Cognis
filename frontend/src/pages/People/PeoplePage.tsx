@@ -66,11 +66,17 @@ export const PeoplePage = () => {
     .filter((p) => !p.excluded)
     .sort((a, b) => (a.display_name ?? '').localeCompare(b.display_name ?? ''))
 
-  const renderScore = (score: number | null | undefined) => {
-    if (score === null || score === undefined) {
+  const renderScore = (score: unknown) => {
+    const val =
+      typeof score === 'number'
+        ? score
+        : typeof score === 'string' && score.trim() !== '' && !Number.isNaN(Number(score))
+        ? Number(score)
+        : null
+    if (val === null || Number.isNaN(val)) {
       return <span className={styles.nullBadge}>N/A</span>
     }
-    return <span className={styles.scoreBadge}>{score.toFixed(1)}</span>
+    return <span className={styles.scoreBadge}>{val.toFixed(1)}</span>
   }
 
   const renderHeaderWithTooltip = (id: string, title: string) => {
@@ -145,64 +151,94 @@ export const PeoplePage = () => {
           Visualização transparente e equilibrada dos índices e contadores de atividade na janela temporal (30 dias).
         </p>
 
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Colaborador</th>
-                <th>Commits</th>
-                <th>PRs</th>
-                <th>Reviews</th>
-                <th>Tarefas Concluídas</th>
-                {renderHeaderWithTooltip('person.participation', 'Participação')}
-                {renderHeaderWithTooltip('person.collaboration', 'Colaboração')}
-                {renderHeaderWithTooltip('person.delivery', 'Entrega')}
-                {renderHeaderWithTooltip('person.quality', 'Qualidade (Proxy)')}
-                {renderHeaderWithTooltip('person.overall', 'Score Global')}
-              </tr>
-            </thead>
-            <tbody>
-              {people.map((person) => {
-                const uid = person.person_uid
-                const personCounters = counters[uid] ?? {}
-                const personOverall = overall[uid]
-                const overallVal =
-                  typeof personOverall === 'object' && personOverall !== null
-                    ? personOverall.overall
-                    : typeof personOverall === 'number'
-                    ? personOverall
-                    : null
+        {peopleQuery.isLoading ? (
+          <div className={styles.stateCard} aria-busy="true">
+            <p className={styles.stateTitle}>Carregando colaboradores...</p>
+            <p>Calculando índices e contadores de colaboração da equipe.</p>
+          </div>
+        ) : peopleQuery.isError ? (
+          <div className={styles.errorCard} role="alert">
+            <p className={styles.errorTitle}>Não foi possível carregar os colaboradores</p>
+            <p>{peopleQuery.error instanceof Error ? peopleQuery.error.message : 'Erro ao consultar a lista de pessoas.'}</p>
+            <button
+              type="button"
+              className={styles.retryBtn}
+              onClick={() => void peopleQuery.refetch()}
+            >
+              Tentar novamente
+            </button>
+          </div>
+        ) : people.length === 0 ? (
+          <div className={styles.stateCard}>
+            <p className={styles.stateTitle}>Nenhum colaborador encontrado</p>
+            <p>Conecte repositórios ou quadros ao projeto e execute a sincronização para carregar as pessoas da equipe.</p>
+            <Link to={`/p/${projectId}`} className={styles.retryBtn} style={{ display: 'inline-block', textDecoration: 'none' }}>
+              Voltar ao Projeto
+            </Link>
+          </div>
+        ) : (
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th scope="col">Colaborador</th>
+                  <th scope="col">Commits</th>
+                  <th scope="col">PRs</th>
+                  <th scope="col">Reviews</th>
+                  <th scope="col">Tarefas Concluídas</th>
+                  {renderHeaderWithTooltip('person.participation', 'Participação')}
+                  {renderHeaderWithTooltip('person.collaboration', 'Colaboração')}
+                  {renderHeaderWithTooltip('person.delivery', 'Entrega')}
+                  {renderHeaderWithTooltip('person.quality', 'Qualidade (Proxy)')}
+                  {renderHeaderWithTooltip('person.overall', 'Score Global')}
+                </tr>
+              </thead>
+              <tbody>
+                {people.map((person) => {
+                  const uid = person.person_uid
+                  const personCounters = counters[uid] ?? {}
+                  const personOverall = overall[uid]
+                  const overallVal =
+                    typeof personOverall === 'object' && personOverall !== null
+                      ? personOverall.overall
+                      : typeof personOverall === 'number'
+                      ? personOverall
+                      : null
 
-                const initials = (person.display_name ?? 'User')
-                  .split(' ')
-                  .map((w) => w[0])
-                  .slice(0, 2)
-                  .join('')
-                  .toUpperCase()
+                  const nameStr = person.display_name?.trim() || 'User'
+                  const initials =
+                    nameStr
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .map((w) => w[0])
+                      .slice(0, 2)
+                      .join('')
+                      .toUpperCase() || 'U'
 
-                return (
-                  <tr key={uid}>
-                    <td>
-                      <div className={styles.personCell}>
-                        <div className={styles.avatarCircle}>{initials}</div>
-                        <span>{person.display_name ?? uid}</span>
-                      </div>
-                    </td>
-                    <td>{personCounters.commits ?? 0}</td>
-                    <td>{personCounters.prs_opened ?? 0}</td>
-                    <td>{personCounters.reviews_given ?? 0}</td>
-                    <td>{personCounters.tasks_done ?? 0}</td>
-                    <td>{renderScore(participation[uid])}</td>
-                    <td>{renderScore(collaboration[uid])}</td>
-                    <td>{renderScore(delivery[uid])}</td>
-                    <td>{renderScore(quality[uid])}</td>
-                    <td>{renderScore(overallVal)}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                  return (
+                    <tr key={uid}>
+                      <td>
+                        <div className={styles.personCell}>
+                          <div className={styles.avatarCircle}>{initials}</div>
+                          <span>{person.display_name ?? uid}</span>
+                        </div>
+                      </td>
+                      <td>{personCounters.commits ?? 0}</td>
+                      <td>{personCounters.prs_opened ?? 0}</td>
+                      <td>{personCounters.reviews_given ?? 0}</td>
+                      <td>{personCounters.tasks_done ?? 0}</td>
+                      <td>{renderScore(participation[uid])}</td>
+                      <td>{renderScore(collaboration[uid])}</td>
+                      <td>{renderScore(delivery[uid])}</td>
+                      <td>{renderScore(quality[uid])}</td>
+                      <td>{renderScore(overallVal)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         <footer className={styles.footerNote}>
           Os indicadores descrevem padrões de colaboração e processo, não avaliam desempenho ou mérito individual.

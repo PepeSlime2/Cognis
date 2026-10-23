@@ -99,3 +99,39 @@ def get_project_signals(
         force_refresh=refresh,
     )
     return bundle.get("signals", [])
+
+
+@router.get("/projects/{pid}/metrics/evolution")
+def get_project_evolution(
+    pid: str,
+    granularity: str = Query("sprint", description="Granularidade da série: sprint ou 14d"),
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db_session),
+    neo4j_driver: Driver = Depends(get_neo4j_driver),
+) -> dict[str, Any]:
+    """Retorna a série temporal de evolução da rede e colaboração da equipe (SPEC §7.4 C, §11)."""
+    project = repository.get_project_for_user(db, pid, user_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Projeto não encontrado",
+        )
+    settings = project.settings_json or {}
+    if granularity not in ("sprint", "14d"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Granularidade inválida. Use 'sprint' ou '14d'.",
+        )
+    min_w = float(settings.get("min_edge_weight", 1.0))
+
+    from .metrics.evolution import compute_team_evolution
+
+    gran_literal = "14d" if granularity == "14d" else "sprint"
+    return compute_team_evolution(
+        driver=neo4j_driver,
+        db=db,
+        project=project,
+        granularity=gran_literal,
+        min_edge_weight=min_w,
+    )
+

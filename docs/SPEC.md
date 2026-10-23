@@ -1149,10 +1149,10 @@ Legenda de dependência: `→` precisa estar concluído antes.
 | F2.1 | `scripts/capture_fixtures.py` (§5.0) e fixtures redigidas | arquivos em `tests/fixtures/{github,trello}`; sem tokens/e-mails | feito |
 | F2.2 | `db/schema.cypher.py` (§4.2) + writer em lote (`UNWIND`, `execute_write`), datas nativas | constraints criadas idempotentemente; teste de idempotência (rodar 2× não duplica) | feito |
 | F2.3 | GitHub v2 (§5.2): incremental, detalhes de commit/PR, reviews como nós, comentários repo-wide, bots, `author=null`, parsing de referências | testes de contrato com fixtures; contagens batem com o GitHub numa amostra de 1 repo | feito |
-| F2.4 | Trello v2 (§5.3): colunas + mapeamento auto, due, ações → `transitions_json`, comentários, labels, anexos | testes de `done_at/started_at` com fixtures; **sem** datas inventadas | em andamento |
-| F2.5 | `ingest/ratelimit.py` + `runner.py` + `sync_runs` + `POST /sync` assíncrono + progresso | 409 se já rodando; run interrompido vira `failed`; 2ª sync é incremental (menos requests) | em andamento |
-| F2.6 | Scheduler `asyncio` (§5.4) e `PUT settings` (`auto_sync`, intervalo) | com intervalo curto de teste, dispara sozinho e atualiza `next_sync_at` | em andamento |
-| F2.7 | UI: sync real na sidebar (agora/intervalo/progresso/erros) + tela “Colunas” para confirmar mapeamento | progresso aparece em tempo real; mapeamento editável persiste | em andamento |
+| F2.4 | Trello v2 (§5.3): colunas + mapeamento auto, due, ações → `transitions_json`, comentários, labels, anexos | testes de `done_at/started_at` com fixtures; **sem** datas inventadas | feito |
+| F2.5 | `ingest/ratelimit.py` + `runner.py` + `sync_runs` + `POST /sync` assíncrono + progresso | 409 se já rodando; run interrompido vira `failed`; 2ª sync é incremental (menos requests) | feito |
+| F2.6 | Scheduler `asyncio` (§5.4) e `PUT settings` (`auto_sync`, intervalo) | com intervalo curto de teste, dispara sozinho e atualiza `next_sync_at` | feito |
+| F2.7 | UI: sync real na sidebar (agora/intervalo/progresso/erros) + tela “Colunas” para confirmar mapeamento | progresso aparece em tempo real; mapeamento editável persiste | feito |
 
 ### F3 — Identidade e vínculos (M) → F2
 
@@ -1161,7 +1161,7 @@ Legenda de dependência: `→` precisa estar concluído antes.
 | F3.1 | `Person`/`Account`, criação automática 1:1, bots excluídos, `person_overrides` | cada `Account` tem `Person`; bots não aparecem por padrão | feito |
 | F3.2 | Endpoints merge/split + sugestões (§6.1) | merge move contas e remove `Person` vazia; split desfaz | feito |
 | F3.3 | `linker.py`: anexos Trello↔GitHub, `shortLink` em texto, `FECHA` com cross-repo; endpoints de vínculo manual | teste com fixtures cria `RELACIONADA_A` com `via` correto | feito |
-| F3.4 | UI Pessoas (merge/rename/excluir) e Vínculos | mesclar duas contas atualiza o grafo na hora | em andamento |
+| F3.4 | UI Pessoas (merge/rename/excluir) e Vínculos | mesclar duas contas atualiza o grafo na hora | feito |
 
 ### F4 — API do grafo e visualização (L) → F3
 
@@ -1221,18 +1221,18 @@ Legenda de dependência: `→` precisa estar concluído antes.
 
 | Tarefa | Descrição | Aceite | Status |
 |---|---|---|---|
-| F9.1 | `team.evolution` por sprint/14 d + `GET /metrics/evolution` + signal `COLLAB_DROP` | seed com 4 períodos mostra variação coerente | pendente |
-| F9.2 | `EvolutionChart` (SVG) + comparação lado a lado de 2 períodos (grafo) | alternar períodos anima o grafo | pendente |
+| F9.1 | `team.evolution` por sprint/14 d + `GET /metrics/evolution` + signal `COLLAB_DROP` | seed com 4 períodos mostra variação coerente | feito |
+| F9.2 | `EvolutionChart` (SVG) + comparação lado a lado de 2 períodos (grafo) | alternar períodos anima o grafo | feito |
 
 ### F10 — Endurecimento e entrega (M)
 
 | Tarefa | Descrição | Aceite | Status |
 |---|---|---|---|
-| F10.1 | Revisão de segurança com o checklist §13.1 + testes faltantes | todos os itens marcados com teste ou evidência | pendente |
-| F10.2 | Estados de loading/vazio/erro em todas as telas; acessibilidade básica (foco, contraste, `aria-label` nos controles do grafo) | navegação por teclado nos controles principais | pendente |
-| F10.3 | Performance: grafo com 400 nós; bundle de métricas < 2 s | medições registradas em `docs/perf.md` | pendente |
-| F10.4 | Excluir projeto (LGPD) apaga grafo + arquivos; botão na UI | contagem de nós `project_id` = 0 após excluir | pendente |
-| F10.5 | README final, vídeo/prints com o seed, `docs/` revisados | alguém novo roda o projeto só pelo README | pendente |
+| F10.1 | Revisão de segurança com o checklist §13.1 + testes faltantes | todos os itens marcados com teste ou evidência | feito |
+| F10.2 | Estados de loading/vazio/erro em todas as telas; acessibilidade básica (foco, contraste, `aria-label` nos controles do grafo) | navegação por teclado nos controles principais | feito |
+| F10.3 | Performance: grafo com 400 nós; bundle de métricas < 2 s | medições registradas em `docs/perf.md` | feito |
+| F10.4 | Excluir projeto (LGPD) apaga grafo + arquivos; botão na UI | contagem de nós `project_id` = 0 após excluir | feito |
+| F10.5 | README final, vídeo/prints com o seed, `docs/` revisados | alguém novo roda o projeto só pelo README | feito |
 
 ### F11 — Opcional / diferencial acadêmico
 

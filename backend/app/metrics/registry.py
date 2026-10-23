@@ -263,6 +263,16 @@ METRICS_CATALOG: list[MetricCatalogEntry] = [
         formula="PRs mesclados com review de terceiros / total mesclados",
         min_sample=">= 5 PRs mesclados",
     ),
+    MetricCatalogEntry(
+        id="team.evolution",
+        name="Evolução temporal da equipe",
+        category="Colaboração e estrutura",
+        scope="team",
+        unit="série",
+        description="Série histórica por período com densidade, modularidade, centralização, componentes, pessoas ativas, reviews por PR e intensidade por pessoa.",
+        formula="Série temporal de métricas de rede e colaboração por sprint ou 14 d",
+        min_sample=">= 2 períodos com dados",
+    ),
     # D. Fluxo e risco do projeto
     MetricCatalogEntry(
         id="flow.completion_rate",

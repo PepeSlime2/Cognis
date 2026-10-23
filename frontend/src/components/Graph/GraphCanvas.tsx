@@ -470,10 +470,43 @@ const GraphCanvas = ({
     const graph = graphRef.current
     if (!graph) return
 
+    const isInitial = graph.elements().length === 0
+
     graph.batch(() => {
-      graph.elements().remove()
-      graph.add(graphElements)
+      const newIds = new Set(
+        graphElements
+          .map((el) => el.data.id)
+          .filter((id): id is string => typeof id === 'string'),
+      )
+
+      // Remover elementos que não existem mais
+      graph.elements().forEach((el) => {
+        if (!newIds.has(el.id())) {
+          el.remove()
+        }
+      })
+
+      // Adicionar elementos novos
+      const toAdd = graphElements.filter((el) => {
+        const id = el.data.id
+        return typeof id === 'string' && graph.getElementById(id).length === 0
+      })
+      if (toAdd.length > 0) {
+        graph.add(toAdd)
+      }
+
+      // Atualizar data() dos elementos persistentes
+      graphElements.forEach((el) => {
+        const id = el.data.id
+        if (typeof id === 'string') {
+          const existing = graph.getElementById(id)
+          if (existing.length > 0 && el.data) {
+            existing.data(el.data)
+          }
+        }
+      })
     })
+
     graph.nodes().style('label', labelsVisible ? 'data(label)' : '')
 
     graph.edges().forEach((edge) => {
@@ -485,11 +518,20 @@ const GraphCanvas = ({
       }
     })
 
-    if (graphElements.length > 0) {
+    if (graph.nodes().length > 0) {
       const layout =
         layoutName === 'fcose'
-          ? graph.layout(layoutOptions)
-          : graph.layout({ name: layoutName, animate: true, animationDuration: 500 })
+          ? graph.layout({
+              ...layoutOptions,
+              randomize: isInitial,
+              animate: true,
+              animationDuration: 650,
+            })
+          : graph.layout({
+              name: layoutName,
+              animate: true,
+              animationDuration: 650,
+            })
 
       layout.on('layoutstop', () => {
         syncNodeSizesWithZoom(graph)
@@ -662,8 +704,9 @@ const GraphCanvas = ({
     <div
       className={styles.graphCanvas}
       ref={containerRef}
-      role="img"
-      aria-label="Grafo do projeto"
+      role="application"
+      tabIndex={0}
+      aria-label="Grafo de colaboração interativo. Navegue com o cursor ou utilize os atalhos de teclado."
     />
   )
 }

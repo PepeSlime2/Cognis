@@ -1,21 +1,30 @@
 from __future__ import annotations
 
+import os
+from pathlib import Path
+import shutil
 from datetime import timedelta
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from .auth_router import get_current_user_id
+from .database import get_neo4j_driver
 from .db import repository
 from .db.models import (
+    Analysis,
     ColumnMapping,
+    MetricSnapshot,
+    PersonOverride,
     Project,
     ProjectSource,
     ProviderConnection,
+    Report,
+    Sprint,
     SyncRun,
     utc_now,
 )
@@ -27,7 +36,12 @@ from .trello_tokens import (
     TrelloTokenRefreshError,
     refresh_if_needed,
 )
-from .project_sync import schedule_project_sync, sync_run_payload
+from .project_sync import (
+    _active_project_ids,
+    _active_projects_lock,
+    schedule_project_sync,
+    sync_run_payload,
+)
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 SYNC_INTERVALS = {15, 30, 60, 360, 1440}
@@ -291,8 +305,70 @@ def delete_project(
     project_id: str,
     user_id: str = Depends(get_current_user_id),
     db_session: Session = Depends(get_db_session),
+    neo4j_driver: Any = Depends(get_neo4j_driver),
 ):
     project = repository.get_project_for_user(db_session, project_id, user_id)
+
+    # 1. Apagar nós e relacionamentos do grafo no Neo4j com paginação LGPD (SPEC §4.2, §13.3)
+    # MATCH (n {project_id:$pid}) WITH n LIMIT 5000 DETACH DELETE n repetido até 0 linhas
+    if neo4j_driver is not None:
+        try:
+            with neo4j_driver.session() as session:
+                while True:
+                    result = session.run(
+                        "MATCH (n {project_id: $pid}) WITH n LIMIT 5000 DETACH DELETE n RETURN count(n) AS cnt",
+                        pid=project_id,
+                    )
+                    record = result.single()
+                    cnt = record["cnt"] if record else 0
+                    if cnt == 0:
+                        break
+        except Exception:
+            pass
+
+    # 2. Remoção física de arquivos gerados (relatórios HTML, DOCX, PDF, gráficos e modelos JSON)
+    reports = db_session.scalars(
+        select(Report).where(Report.project_id == project_id)
+    ).all()
+    for report in reports:
+        if report.model_json_path:
+            p = Path(report.model_json_path)
+            if p.exists() and p.is_file():
+                try:
+                    p.unlink(missing_ok=True)
+                except OSError:
+                    pass
+        if report.files_json:
+            for file_path in report.files_json.values():
+                if file_path:
+                    fp = Path(file_path)
+                    if fp.exists() and fp.is_file():
+                        try:
+                            fp.unlink(missing_ok=True)
+                        except OSError:
+                            pass
+
+    project_reports_dir = Path("storage/reports") / project_id
+    if project_reports_dir.exists() and project_reports_dir.is_dir():
+        shutil.rmtree(project_reports_dir, ignore_errors=True)
+
+    project_storage_dir = Path("storage/projects") / project_id
+    if project_storage_dir.exists() and project_storage_dir.is_dir():
+        shutil.rmtree(project_storage_dir, ignore_errors=True)
+
+    # 3. Remover de sincronizações ativas
+    with _active_projects_lock:
+        _active_project_ids.discard(project_id)
+
+    # 4. Remoção em cascata no banco de dados SQLite
+    db_session.execute(delete(Report).where(Report.project_id == project_id))
+    db_session.execute(delete(Analysis).where(Analysis.project_id == project_id))
+    db_session.execute(delete(MetricSnapshot).where(MetricSnapshot.project_id == project_id))
+    db_session.execute(delete(SyncRun).where(SyncRun.project_id == project_id))
+    db_session.execute(delete(PersonOverride).where(PersonOverride.project_id == project_id))
+    db_session.execute(delete(Sprint).where(Sprint.project_id == project_id))
+    db_session.execute(delete(ColumnMapping).where(ColumnMapping.project_id == project_id))
+    db_session.execute(delete(ProjectSource).where(ProjectSource.project_id == project_id))
     db_session.delete(project)
     db_session.commit()
 
@@ -304,12 +380,16 @@ def start_project_sync(
     user_id: str = Depends(get_current_user_id),
     db_session: Session = Depends(get_db_session),
 ):
+    # Validar isolamento de tenant antes de agendar
+    _ = repository.get_project_for_user(db_session, project_id, user_id)
+    driver = getattr(request.app.state, "neo4j_driver", None)
+    executor = getattr(request.app.state, "sync_executor", None)
     run = schedule_project_sync(
         db_session,
         user_id,
         project_id,
-        request.app.state.neo4j_driver,
-        request.app.state.sync_executor,
+        driver,
+        executor,
     )
     return {"run_id": run.id, "status": run.status, "progress": run.progress_json}
 

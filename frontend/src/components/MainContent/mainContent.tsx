@@ -87,6 +87,17 @@ const MainContent = ({ projectId }: MainContentProps) => {
                       <span>{project.history_days} dias de histórico</span>
                     </div>
                     <div className={styles.projectActionRow}>
+                      <button
+                        type="button"
+                        className={styles.manageProjectButton}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          navigate(`/settings?project=${project.id}`)
+                        }}
+                        aria-label={`Configurar e gerenciar projeto ${project.name}`}
+                      >
+                        ⚙️ Configurações / Excluir
+                      </button>
                       <span className={styles.openProjectLink}>Abrir Grafo →</span>
                     </div>
                   </article>
